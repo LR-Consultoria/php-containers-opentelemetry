@@ -21,7 +21,9 @@ jobs:
       matrix:
         php-version: ['8.2', '8.3', '8.4']
         variant: ['base', 'swoole', 'nginx', 'franken']
+        platform: ['linux/amd64', 'linux/arm64']
       fail-fast: false
+      max-parallel: 6
     
     permissions:
       contents: read
@@ -72,29 +74,88 @@ jobs:
       with:
         context: .
         file: ${{ matrix.variant }}/Dockerfile
-        platforms: linux/amd64,linux/arm64
+        platforms: ${{ matrix.platform }}
         build-args: |
           PHP_VERSION=${{ matrix.php-version }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}
+          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: |
+          type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }}-${{ matrix.platform }}
+          type=registry,ref=${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:cache-${{ matrix.variant }}-${{ matrix.php-version }}-${{ matrix.platform }}
+        cache-to: |
+          type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }}-${{ matrix.platform }},mode=max
+          type=registry,ref=${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:cache-${{ matrix.variant }}-${{ matrix.php-version }}-${{ matrix.platform }},mode=max
 
     - name: Test image
-      if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request' && matrix.platform == 'linux/amd64'
       run: |
-        # Pull the built image
-        docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine
+        # Pull the built image (only test amd64 for speed)
+        docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64
         
         # Run basic tests
         ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine
 
-  security-scan:
+  create-manifests:
     runs-on: ubuntu-latest
     needs: build-matrix
+    if: github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
+        variant: ['base', 'swoole', 'nginx', 'franken']
+      max-parallel: 4
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set image name
+      id: image-name
+      run: |
+        REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
+        if [ "${{ matrix.variant }}" = "base" ]; then
+          echo "name=php-base" >> $GITHUB_OUTPUT
+        else
+          echo "name=php-${{ matrix.variant }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create and push multi-arch manifest
+      run: |
+        # Create multi-arch manifest
+        docker manifest create \
+          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine \
+          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64 \
+          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-arm64
+        
+        # Push multi-arch manifest
+        docker manifest push ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine
+        
+        # Create latest tag for default branch and PHP 8.3
+        if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "${{ matrix.php-version }}" = "8.3" ]; then
+          docker manifest create \
+            ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:latest \
+            ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64 \
+            ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-arm64
+          docker manifest push ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:latest
+        fi
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: create-manifests
     if: github.event_name != 'pull_request'
     strategy:
       matrix:
@@ -126,7 +187,7 @@ jobs:
 
   update-readme:
     runs-on: ubuntu-latest
-    needs: build-matrix
+    needs: create-manifests
     if: github.ref == 'refs/heads/main'
     
     steps:
@@ -148,7 +209,7 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-latest
-    needs: [build-matrix, security-scan]
+    needs: [create-manifests, security-scan]
     if: always()
     
     steps:

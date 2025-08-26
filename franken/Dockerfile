@@ -4,15 +4,13 @@ FROM dunglas/frankenphp:1-php${PHP_VERSION}-alpine
 LABEL maintainer="LR Consultoria <devops@lrconsultoria.com.br>"
 LABEL description="PHP ${PHP_VERSION} FrankenPHP Alpine with OpenTelemetry for modern web applications"
 
-# Install system dependencies
-RUN apk add --no-cache \
-    curl \
-    bash \
-    && rm -rf /var/cache/apk/*
-
-## Install PHP extensions
-ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN install-php-extensions opentelemetry grpc    
+# Install system dependencies and PHP extensions in one layer
+RUN apk add --no-cache curl bash \
+    && curl -sSLf -o /usr/local/bin/install-php-extensions \
+        https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
+    && chmod +x /usr/local/bin/install-php-extensions \
+    && install-php-extensions opentelemetry grpc \
+    && rm -rf /var/cache/apk/* /tmp/*    
 
 # Copy PHP configuration
 COPY configs/php-franken.ini /usr/local/etc/php/conf.d/
