@@ -24,7 +24,7 @@ COPY configs/entrypoint.sh /usr/local/bin/
 WORKDIR /var/www
 
 # Modify existing www-data user to use UID/GID 1000
-RUN deluser www-data && delgroup www-data \
+RUN (deluser www-data 2>/dev/null || true) && (delgroup www-data 2>/dev/null || true) \
     && addgroup -g 1000 www-data \
     && adduser -u 1000 -G www-data -s /bin/sh -D www-data
 
