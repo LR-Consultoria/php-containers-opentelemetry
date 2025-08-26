@@ -4,62 +4,10 @@ FROM dunglas/frankenphp:1-php${PHP_VERSION}-alpine
 LABEL maintainer="LR Consultoria <devops@lrconsultoria.com.br>"
 LABEL description="PHP ${PHP_VERSION} FrankenPHP Alpine with OpenTelemetry for modern web applications"
 
-# Install system dependencies
-RUN apk add --no-cache \
-    bash \
-    curl \
-    freetype-dev \
-    g++ \
-    gcc \
-    git \
-    icu-dev \
-    jpeg-dev \
-    libc-dev \
-    libpng-dev \
-    libxml2-dev \
-    libzip-dev \
-    make \
-    mysql-client \
-    nodejs \
-    npm \
-    oniguruma-dev \
-    postgresql-dev \
-    sqlite-dev \
-    unzip \
-    zip \
-    && rm -rf /var/cache/apk/*
+## Install PHP extensions
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN install-php-extensions opentelemetry grpc    
 
-# Configure and install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-configure intl \
-    && docker-php-ext-install -j$(nproc) \
-    bcmath \
-    calendar \
-    exif \
-    gd \
-    gettext \
-    intl \
-    mysqli \
-    opcache \
-    pdo \
-    pdo_mysql \
-    pdo_pgsql \
-    pdo_sqlite \
-    pcntl \
-    soap \
-    sockets \
-    zip
-
-# Install OpenTelemetry extension
-RUN pecl install opentelemetry \
-    && docker-php-ext-enable opentelemetry
-
-# Install Redis extension
-RUN pecl install redis \
-    && docker-php-ext-enable redis
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy PHP configuration
 COPY configs/php-franken.ini /usr/local/etc/php/conf.d/
@@ -87,5 +35,3 @@ EXPOSE 80 443
 # Set entrypoint
 ENTRYPOINT ["entrypoint.sh"]
 
-# Default command
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
