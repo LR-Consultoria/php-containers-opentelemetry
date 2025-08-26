@@ -8,7 +8,7 @@ Esta pasta contém exemplos de configurações Docker Compose para diferentes ce
 - `laravel-base.yml` - Setup básico com PHP-FPM + Nginx separado
 - `laravel-swoole.yml` - Setup com Swoole para alta performance
 - `laravel-nginx.yml` - Setup com Nginx integrado para produção
-- `laravel-franken.yml` - Setup com FrankenPHP para desenvolvimento moderno
+- `laravel-frankenphp.yml` - Setup com FrankenPHP para desenvolvimento moderno
 
 ### Arquivos de Suporte
 - `env.example` - Variáveis de ambiente de exemplo
@@ -57,7 +57,7 @@ docker-compose -f examples/laravel-nginx.yml up -d
 cp examples/env.example .env
 
 # Inicie com FrankenPHP
-docker-compose -f examples/laravel-franken.yml up -d
+docker-compose -f examples/laravel-frankenphp.yml up -d
 
 # Acesse: http://localhost
 ```

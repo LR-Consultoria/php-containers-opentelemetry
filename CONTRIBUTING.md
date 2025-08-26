@@ -147,7 +147,7 @@ php-docker/
 ├── base/               # Imagens base PHP-FPM
 ├── swoole/            # Variantes Swoole
 ├── nginx/             # Variantes Nginx
-├── franken/           # Variantes FrankenPHP
+├── frankenphp/        # Variantes FrankenPHP
 ├── configs/           # Configurações compartilhadas
 ├── scripts/           # Scripts de build e teste
 ├── examples/          # Exemplos docker-compose

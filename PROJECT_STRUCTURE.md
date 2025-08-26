@@ -15,7 +15,7 @@ php-docker/
 │   └── Dockerfile              # Dockerfile parametrizado
 ├── nginx/                      # Variantes com Nginx
 │   └── Dockerfile              # Dockerfile parametrizado
-├── franken/                    # Variantes com FrankenPHP
+├── frankenphp/                 # Variantes com FrankenPHP
 │   └── Dockerfile              # Dockerfile parametrizado
 ├── configs/                    # Configurações compartilhadas
 │   ├── php-production.ini      # Config PHP produção
@@ -36,7 +36,7 @@ php-docker/
 │   ├── laravel-base.yml       # Setup base
 │   ├── laravel-swoole.yml     # Setup Swoole
 │   ├── laravel-nginx.yml      # Setup Nginx
-│   ├── laravel-franken.yml    # Setup FrankenPHP
+│   ├── laravel-frankenphp.yml # Setup FrankenPHP
 │   ├── env.example            # Variáveis exemplo
 │   └── README.md              # Documentação exemplos
 ├── Makefile                    # Comandos de automação
@@ -74,7 +74,7 @@ Isso permite:
 | `php-base` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP-FPM base |
 | `php-swoole` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP + Swoole |
 | `php-nginx` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP-FPM + Nginx |
-| `php-franken` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | FrankenPHP |
+| `php-frankenphp` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | FrankenPHP |
 
 ## ⚙️ Configurações
 

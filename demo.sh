@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}📋 Available PHP Versions: 8.2, 8.3, 8.4${NC}"
-echo -e "${BLUE}📦 Available Variants: base, swoole, nginx, franken${NC}"
+echo -e "${BLUE}📦 Available Variants: base, swoole, nginx, frankenphp${NC}"
 echo ""
 
 echo -e "${YELLOW}🏗 Build Command Examples:${NC}"
@@ -64,7 +64,7 @@ echo -e "${YELLOW}📁 New directory structure:${NC}"
 echo "   base/Dockerfile     (was base/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
 echo "   swoole/Dockerfile   (was swoole/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
 echo "   nginx/Dockerfile    (was nginx/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
-echo "   franken/Dockerfile  (was franken/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
+echo "   frankenphp/Dockerfile  (was franken/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
 echo ""
 
 echo -e "${BLUE}🚀 Try it yourself:${NC}"
