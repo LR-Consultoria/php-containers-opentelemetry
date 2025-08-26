@@ -1,0 +1,61 @@
+{
+    # Global options
+    auto_https off
+    admin off
+    log {
+        output stdout
+        format console
+    }
+}
+
+:80 {
+    # Document root
+    root * /var/www/public
+    
+    # Enable PHP processing
+    php_fastcgi unix//var/run/php/php-fpm.sock
+    
+    # Laravel routing
+    try_files {path} {path}/ /index.php?{query}
+    
+    # Static file handling with caching
+    @static {
+        file
+        path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static Cache-Control "public, max-age=31536000, immutable"
+    
+    # Security headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer-when-downgrade"
+        X-Robots-Tag "noindex, nofollow"
+        -Server
+    }
+    
+    # Deny access to sensitive files
+    @forbidden {
+        path /.env*
+        path /.git*
+        path /storage/*
+        path /bootstrap/cache/*
+        path *.log
+    }
+    respond @forbidden 403
+    
+    # Health check endpoint
+    handle /health {
+        respond "healthy" 200
+    }
+    
+    # Enable compression
+    encode gzip zstd
+    
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}

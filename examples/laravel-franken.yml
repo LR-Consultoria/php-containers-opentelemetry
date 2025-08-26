@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/lrconsultoria/php-franken:8.3-alpine
+    container_name: laravel-franken
+    working_dir: /var/www
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./src:/var/www
+      - ./configs/php-franken-local.ini:/usr/local/etc/php/conf.d/php-franken-local.ini
+      - ./configs/Caddyfile:/etc/caddy/Caddyfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      DB_HOST: database
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      CACHE_DRIVER: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      # FrankenPHP specific
+      FRANKENPHP_CONFIG: /etc/caddy/Caddyfile
+      SERVER_NAME: :80
+    networks:
+      - laravel
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  database:
+    image: mysql:8.0
+    container_name: laravel-franken-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - laravel
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: laravel-franken-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - laravel
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Queue Worker
+  queue:
+    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    container_name: laravel-franken-queue
+    working_dir: /var/www
+    volumes:
+      - ./src:/var/www
+    command: php artisan queue:work redis --verbose --tries=3 --timeout=90 --memory=512
+    environment:
+      APP_ENV: local
+      DB_HOST: database
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+    networks:
+      - laravel
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+
+  # Websockets com Pusher/Soketi (opcional)
+  soketi:
+    image: quay.io/soketi/soketi:latest-16-alpine
+    container_name: laravel-franken-soketi
+    ports:
+      - "6001:6001"
+      - "9601:9601"
+    environment:
+      SOKETI_DEBUG: 1
+      SOKETI_DEFAULT_APP_ID: laravel-app
+      SOKETI_DEFAULT_APP_KEY: laravel-key
+      SOKETI_DEFAULT_APP_SECRET: laravel-secret
+    networks:
+      - laravel
+
+  # Desenvolvimento - MailHog para emails
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: laravel-franken-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - laravel
+
+  # Development - Adminer para banco de dados
+  adminer:
+    image: adminer:latest
+    container_name: laravel-franken-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: database
+    networks:
+      - laravel
+    depends_on:
+      - database
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  laravel:
+    driver: bridge

@@ -1,0 +1,123 @@
+version: '3.8'
+
+# Docker Compose para desenvolvimento das imagens Docker
+# Este arquivo é usado para testar localmente as imagens construídas
+
+services:
+  # Test PHP Base
+  php-base-test:
+    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    container_name: test-php-base
+    working_dir: /var/www
+    volumes:
+      - ./test-app:/var/www
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+    networks:
+      - test-network
+    profiles:
+      - base
+
+  # Test PHP Swoole
+  php-swoole-test:
+    image: ghcr.io/lrconsultoria/php-swoole:8.3-alpine
+    container_name: test-php-swoole
+    working_dir: /var/www
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./test-app:/var/www
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+    networks:
+      - test-network
+    profiles:
+      - swoole
+
+  # Test PHP Nginx
+  php-nginx-test:
+    image: ghcr.io/lrconsultoria/php-nginx:8.3-alpine
+    container_name: test-php-nginx
+    working_dir: /var/www
+    ports:
+      - "8080:80"
+    volumes:
+      - ./test-app:/var/www
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+    networks:
+      - test-network
+    profiles:
+      - nginx
+
+  # Test PHP FrankenPHP
+  php-franken-test:
+    image: ghcr.io/lrconsultoria/php-franken:8.3-alpine
+    container_name: test-php-franken
+    working_dir: /var/www
+    ports:
+      - "8090:80"
+    volumes:
+      - ./test-app:/var/www
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+    networks:
+      - test-network
+    profiles:
+      - franken
+
+  # Database for testing
+  test-database:
+    image: mysql:8.0
+    container_name: test-database
+    environment:
+      MYSQL_ROOT_PASSWORD: test_password
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+    volumes:
+      - test_db_data:/var/lib/mysql
+    networks:
+      - test-network
+    profiles:
+      - database
+
+  # Redis for testing
+  test-redis:
+    image: redis:alpine
+    container_name: test-redis
+    volumes:
+      - test_redis_data:/data
+    networks:
+      - test-network
+    profiles:
+      - redis
+
+  # All services utility
+  test-all:
+    image: alpine:latest
+    container_name: test-runner
+    depends_on:
+      - php-base-test
+      - php-swoole-test
+      - php-nginx-test
+      - php-franken-test
+      - test-database
+      - test-redis
+    command: echo "All test services are running"
+    networks:
+      - test-network
+    profiles:
+      - all
+
+volumes:
+  test_db_data:
+  test_redis_data:
+
+networks:
+  test-network:
+    driver: bridge

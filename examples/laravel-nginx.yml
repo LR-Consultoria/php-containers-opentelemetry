@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/lrconsultoria/php-nginx:8.3-alpine
+    container_name: laravel-nginx
+    working_dir: /var/www
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./src:/var/www
+      - ./configs/php-production.ini:/usr/local/etc/php/conf.d/php-production.ini
+      - ./logs/nginx:/var/log/nginx
+      - ./logs/supervisor:/var/log/supervisor
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      DB_HOST: database
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      CACHE_DRIVER: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+    networks:
+      - laravel
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  database:
+    image: mysql:8.0
+    container_name: laravel-nginx-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - laravel
+    restart: unless-stopped
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --innodb-buffer-pool-size=512M
+      --max-connections=200
+
+  redis:
+    image: redis:alpine
+    container_name: laravel-nginx-redis
+    volumes:
+      - redis_data:/data
+      - ./configs/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - laravel
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # Queue Worker
+  queue:
+    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    container_name: laravel-nginx-queue
+    working_dir: /var/www
+    volumes:
+      - ./src:/var/www
+    command: php artisan queue:work redis --verbose --tries=3 --timeout=90 --memory=512 --sleep=3 --max-jobs=1000
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      DB_HOST: database
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+    networks:
+      - laravel
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+  # Schedule Runner
+  scheduler:
+    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    container_name: laravel-nginx-scheduler
+    working_dir: /var/www
+    volumes:
+      - ./src:/var/www
+    command: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction
+        sleep 60
+      done"
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      DB_HOST: database
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+    networks:
+      - laravel
+    depends_on:
+      - database
+      - redis
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  laravel:
+    driver: bridge
