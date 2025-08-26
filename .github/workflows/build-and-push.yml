@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.3']
-        variant: ['base', 'nginx']
+        variant: ['base', 'nginx', 'swoole', 'frankenphp']
         platforms: ['linux/amd64']
       fail-fast: false
       max-parallel: 2
@@ -70,7 +70,6 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push Docker image
-      if: ${{ matrix.variant == 'base' || github.event_name != 'pull_request' }}
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -86,7 +85,7 @@ jobs:
         cache-to: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }},mode=max
 
     - name: Test image
-      if: ${{ (matrix.variant == 'base' || github.event_name != 'pull_request') && github.event_name != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' }}
       run: |
         # Pull the built image 
         docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64
@@ -113,7 +112,7 @@ jobs:
             variant: 'swoole'
             platforms: 'linux/amd64'
           - php-version: '8.3'
-            variant: 'franken'
+            variant: 'frankenphp'
             platforms: 'linux/amd64'
           # PHP 8.2 (if needed)
           - php-version: '8.2'
