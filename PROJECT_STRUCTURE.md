@@ -9,7 +9,7 @@ php-docker/
 ├── .github/                    # GitHub Actions e automação
 │   └── workflows/
 │       └── build-and-push.yml  # CI/CD pipeline principal
-├── base/                       # Imagens base PHP-FPM
+├── fpm/                       # Imagens FPM PHP-FPM
 │   └── Dockerfile              # Dockerfile parametrizado
 ├── swoole/                     # Variantes com Swoole
 │   └── Dockerfile              # Dockerfile parametrizado
@@ -71,7 +71,7 @@ Isso permite:
 
 | Imagem | Tag | Descrição |
 |--------|-----|-----------|
-| `php-base` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP-FPM base |
+| `php-fpm` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP-FPM base |
 | `php-swoole` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP + Swoole |
 | `php-nginx` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP-FPM + Nginx |
 | `php-frankenphp` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | FrankenPHP |
@@ -92,7 +92,7 @@ Isso permite:
 - MySQL/PostgreSQL clients
 
 ### Portas Expostas
-- **Base**: 9000 (PHP-FPM)
+- **FPM**: 9000 (PHP-FPM)
 - **Swoole**: 8000 (HTTP)
 - **Nginx**: 80, 443 (HTTP/HTTPS)
 - **FrankenPHP**: 80, 443 (HTTP/HTTPS)
@@ -107,7 +107,7 @@ Constrói uma imagem específica usando argumentos de build.
 
 **Exemplo de comando gerado:**
 ```bash
-docker build --build-arg PHP_VERSION=8.3 -t ghcr.io/lrconsultoria/php-base:8.3-alpine -f base/Dockerfile .
+docker build --build-arg PHP_VERSION=8.3 -t ghcr.io/lrconsultoria/php-fpm:8.3-alpine -f fpm/Dockerfile .
 ```
 
 ### build-all.sh
@@ -131,16 +131,16 @@ Testa uma imagem específica.
 ## 🚀 Makefile Targets
 
 ### Build
-- `make build VERSION=8.3 VARIANT=base` - Build específico
+- `make build VERSION=8.3 VARIANT=fpm` - Build específico
 - `make build-all` - Build todas
 - `make build-matrix` - Build multi-platform
 
 ### Test
-- `make test VERSION=8.3 VARIANT=base` - Teste específico
+- `make test VERSION=8.3 VARIANT=fpm` - Teste específico
 - `make test-all` - Teste todas
 
 ### Push
-- `make push VERSION=8.3 VARIANT=base` - Push específico
+- `make push VERSION=8.3 VARIANT=fpm` - Push específico
 - `make push-all` - Push todas
 
 ### Desenvolvimento
@@ -206,7 +206,7 @@ O pipeline automatizado (`build-and-push.yml`):
 
 Todas as imagens incluem health checks:
 
-- **Base**: Verifica PHP-FPM via ping
+- **FPM**: Verifica PHP-FPM via ping
 - **Swoole**: HTTP GET `/health`
 - **Nginx**: HTTP GET `/nginx-health`
 - **FrankenPHP**: HTTP GET `/health`
@@ -232,7 +232,7 @@ Todas as imagens incluem health checks:
 - No sensitive data in images
 
 ### Scanning
-- Base image vulnerabilities
+- FPM image vulnerabilities
 - Dependency scanning
 - Regular security updates
 
@@ -244,8 +244,8 @@ Todas as imagens incluem health checks:
 make dev-setup
 
 # Build e teste
-make build VERSION=8.3 VARIANT=base
-make test VERSION=8.3 VARIANT=base
+make build VERSION=8.3 VARIANT=fpm
+make test VERSION=8.3 VARIANT=fpm
 ```
 
 ### 2. Contribuição

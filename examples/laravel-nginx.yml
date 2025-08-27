@@ -68,7 +68,7 @@ services:
 
   # Queue Worker
   queue:
-    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
     container_name: laravel-nginx-queue
     working_dir: /var/www
     volumes:
@@ -93,7 +93,7 @@ services:
 
   # Schedule Runner
   scheduler:
-    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
     container_name: laravel-nginx-scheduler
     working_dir: /var/www
     volumes:

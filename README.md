@@ -4,7 +4,7 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 
 [![Build and Push](https://github.com/lrconsultoria/php-docker/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/lrconsultoria/php-docker/actions/workflows/build-and-push.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker Pulls](https://img.shields.io/docker/pulls/lrconsultoria/php-base)](https://github.com/lrconsultoria/php-docker/pkgs/container/php-base)
+[![Docker Pulls](https://img.shields.io/docker/pulls/lrconsultoria/php-fpm)](https://github.com/lrconsultoria/php-docker/pkgs/container/php-fpm)
 
 ## 🐳 Imagens Disponíveis
 
@@ -17,7 +17,7 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 
 | Variante | Descrição | Porta | Uso Recomendado |
 |----------|-----------|-------|-----------------|
-| **Base** | PHP-FPM com extensões essenciais | 9000 | Desenvolvimento tradicional |
+| **FPM** | PHP-FPM com extensões essenciais | 9000 | Desenvolvimento tradicional |
 | **Swoole** | Extensão Swoole para alta performance | 8000 | APIs de alta performance |
 | **Nginx** | PHP-FPM + Nginx integrado | 80/443 | Aplicações web completas |
 | **FrankenPHP** | Servidor moderno com HTTP/2 e HTTP/3 | 80/443 | Aplicações modernas |
@@ -35,9 +35,9 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 
 ## 📦 Uso Rápido
 
-### Imagem Base
+### Imagem FPM
 ```bash
-docker pull ghcr.io/lrconsultoria/php-base:8.3-alpine
+docker pull ghcr.io/lrconsultoria/php-fpm:8.3-alpine
 ```
 
 ### Com Swoole
@@ -62,7 +62,7 @@ docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
 ./scripts/build-all.sh
 
 # Build versão específica
-./scripts/build.sh 8.3 base
+./scripts/build.sh 8.3 fpm
 ./scripts/build.sh 8.3 swoole
 ./scripts/build.sh 8.3 nginx
 ./scripts/build.sh 8.3 frankenphp
@@ -72,7 +72,7 @@ docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
 
 ```
 php-docker/
-├── base/           # Dockerfiles base para cada versão PHP
+├── fpm/           # Dockerfiles FPM para cada versão PHP
 ├── swoole/         # Variantes com Swoole
 ├── nginx/          # Variantes com Nginx
 ├── frankenphp/     # Variantes com FrankenPHP
@@ -120,7 +120,7 @@ docker-compose -f examples/laravel-base.yml up -d
 
 ### Uso em Dockerfile
 ```dockerfile
-FROM ghcr.io/lrconsultoria/php-base:8.3-alpine
+FROM ghcr.io/lrconsultoria/php-fpm:8.3-alpine
 
 COPY . /var/www
 RUN composer install --no-dev --optimize-autoloader
@@ -135,16 +135,16 @@ Consulte a pasta [`examples/`](examples/) para ver exemplos completos de como us
 ### Build Local
 ```bash
 # Build uma imagem específica
-make build VERSION=8.3 VARIANT=base
+make build VERSION=8.3 VARIANT=fpm
 
 # Build todas as imagens
 make build-all
 
 # Build direto com Docker (usando argumentos)
-docker build --build-arg PHP_VERSION=8.3 -t my-php:8.3 -f base/Dockerfile .
+docker build --build-arg PHP_VERSION=8.3 -t my-php:8.3 -f fpm/Dockerfile .
 
 # Executar testes
-make test VERSION=8.3 VARIANT=base
+make test VERSION=8.3 VARIANT=fpm
 make test-all
 ```
 
@@ -166,7 +166,7 @@ Todos os Dockerfiles usam `PHP_VERSION` como argumento, permitindo:
 
 | Variante | Startup Time | Memory Usage | Request/sec |
 |----------|--------------|--------------|-------------|
-| Base (PHP-FPM) | ~2s | 50MB | 1,000 |
+| FPM (PHP-FPM) | ~2s | 50MB | 1,000 |
 | Swoole | ~3s | 80MB | 5,000+ |
 | Nginx | ~3s | 70MB | 2,000 |
 | FrankenPHP | ~2s | 60MB | 3,000 |
