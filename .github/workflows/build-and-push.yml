@@ -2,10 +2,10 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
     tags: [ 'v*' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   schedule:
     # Build images monthly on the 1st at 2 AM UTC
     - cron: '0 2 1 * *'
@@ -22,18 +22,18 @@ jobs:
         php-version: ['8.2', '8.3', '8.4']
         variant: ['fpm', 'swoole', 'nginx', 'frankenphp']
         platforms: ['linux/amd64']
-        exclude:
+        #exclude:
           # Exclude combinations that don't exist
-          - php-version: '8.4'
-            variant: 'frankenphp'
-        include:
+          #- php-version: '8.4'
+          #  variant: 'frankenphp'
+        #include:
           # Add ARM64 for main variants only
-          - php-version: '8.3'
-            variant: 'fpm'
-            platforms: 'linux/arm64'
-          - php-version: '8.3'
-            variant: 'nginx'
-            platforms: 'linux/arm64'
+          #- php-version: '8.3'
+          #  variant: 'fpm'
+          #  platforms: 'linux/arm64'
+          #- php-version: '8.3'
+          #  variant: 'nginx'
+          #  platforms: 'linux/arm64'
       fail-fast: false
       max-parallel: 2
     
