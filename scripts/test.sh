@@ -28,11 +28,11 @@ Test Docker images for PHP projects.
 
 Arguments:
   version       PHP version (8.2, 8.3, 8.4)
-  variant       Image variant (base, swoole, nginx, frankenphp)
+  variant       Image variant (fpm, swoole, nginx, frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
-  $0 8.3 base
+  $0 8.3 fpm
   $0 8.3 swoole
   $0 8.3 nginx
 
@@ -71,13 +71,13 @@ case $PHP_VERSION in
 esac
 
 case $VARIANT in
-    base|swoole|nginx|frankenphp) ;;
+    fpm|swoole|nginx|frankenphp) ;;
     *) echo "Error: Invalid variant '$VARIANT'"; exit 1 ;;
 esac
 
 # Set image names
-if [ "$VARIANT" = "base" ]; then
-    IMAGE_NAME="php-base"
+if [ "$VARIANT" = "fpm" ]; then
+    IMAGE_NAME="php-fpm"
 else
     IMAGE_NAME="php-$VARIANT"
 fi
@@ -137,7 +137,7 @@ fi
 # Test 5: Basic container startup
 echo -e "${YELLOW}Test 5: Testing container startup...${NC}"
 case $VARIANT in
-    "base")
+    "fpm")
         docker run -d --name "$CONTAINER_NAME" "$FULL_IMAGE_NAME" >/dev/null
         sleep 2
         if docker ps -f name="$CONTAINER_NAME" | grep -q "$CONTAINER_NAME"; then

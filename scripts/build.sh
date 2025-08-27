@@ -21,11 +21,11 @@ Build Docker images for PHP projects.
 
 Arguments:
   version       PHP version (8.2, 8.3, 8.4)
-  variant       Image variant (base, swoole, nginx, frankenphp)
+  variant       Image variant (fpm, swoole, nginx, frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
-  $0 8.3 base
+  $0 8.3 fpm
   $0 8.3 swoole
   $0 8.3 nginx dev
   $0 8.4 frankenphp latest
@@ -62,17 +62,17 @@ esac
 
 # Validate variant
 case $VARIANT in
-    base|swoole|nginx|frankenphp)
+    fpm|swoole|nginx|frankenphp)
         ;;
     *)
-        echo "Error: Invalid variant '$VARIANT'. Supported: base, swoole, nginx, frankenphp"
+        echo "Error: Invalid variant '$VARIANT'. Supported: fpm, swoole, nginx, frankenphp"
         exit 1
         ;;
 esac
 
 # Set image names
-if [ "$VARIANT" = "base" ]; then
-    IMAGE_NAME="php-base"
+if [ "$VARIANT" = "fpm" ]; then
+    IMAGE_NAME="php-fpm"
 else
     IMAGE_NAME="php-$VARIANT"
 fi

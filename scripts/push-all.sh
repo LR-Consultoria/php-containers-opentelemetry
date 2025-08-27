@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 PHP_VERSIONS=("8.2" "8.3" "8.4")
-VARIANTS=("base" "swoole" "nginx" "frankenphp")
+VARIANTS=("fpm" "swoole" "nginx" "frankenphp")
 TAG_SUFFIX=${1:-alpine}
 REGISTRY=${REGISTRY:-ghcr.io/lrconsultoria}
 
@@ -39,11 +39,11 @@ for version in "${PHP_VERSIONS[@]}"; do
         CURRENT_PUSH=$((CURRENT_PUSH + 1))
         
         # Set image names
-        if [ "$variant" = "base" ]; then
-            IMAGE_NAME="php-base"
-        else
-            IMAGE_NAME="php-$variant"
-        fi
+            if [ "$variant" = "fpm" ]; then
+        IMAGE_NAME="php-fpm"
+    else
+        IMAGE_NAME="php-$variant"
+    fi
         
         TAG="$version-$TAG_SUFFIX"
         FULL_IMAGE_NAME="$REGISTRY/$IMAGE_NAME:$TAG"

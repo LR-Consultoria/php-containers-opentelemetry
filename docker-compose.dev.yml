@@ -4,10 +4,10 @@ version: '3.8'
 # Este arquivo é usado para testar localmente as imagens construídas
 
 services:
-  # Test PHP Base
-  php-base-test:
-    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
-    container_name: test-php-base
+  # Test PHP FPM
+  php-fpm-test:
+    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
+    container_name: test-php-fpm
     working_dir: /var/www
     volumes:
       - ./test-app:/var/www
@@ -17,7 +17,7 @@ services:
     networks:
       - test-network
     profiles:
-      - base
+      - fpm
 
   # Test PHP Swoole
   php-swoole-test:
@@ -102,7 +102,7 @@ services:
     image: alpine:latest
     container_name: test-runner
     depends_on:
-      - php-base-test
+      - php-fpm-test
       - php-swoole-test
       - php-nginx-test
       - php-frankenphp-test

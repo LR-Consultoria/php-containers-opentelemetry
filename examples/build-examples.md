@@ -7,7 +7,7 @@ Este documento mostra como usar os Dockerfiles com argumentos de build para dife
 ### Usando Scripts (Recomendado)
 ```bash
 # Build versão específica
-./scripts/build.sh 8.3 base alpine
+./scripts/build.sh 8.3 fpm alpine
 
 # Build todas as versões
 ./scripts/build-all.sh alpine
@@ -15,8 +15,8 @@ Este documento mostra como usar os Dockerfiles com argumentos de build para dife
 
 ### Usando Docker Diretamente
 ```bash
-# PHP 8.3 base
-docker build --build-arg PHP_VERSION=8.3 -t my-php-base:8.3 -f base/Dockerfile .
+# PHP 8.3 fpm
+docker build --build-arg PHP_VERSION=8.3 -t my-php-fpm:8.3 -f fpm/Dockerfile .
 
 # PHP 8.2 com Swoole
 docker build --build-arg PHP_VERSION=8.2 -t my-php-swoole:8.2 -f swoole/Dockerfile .
@@ -38,7 +38,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: base/Dockerfile
+      dockerfile: fpm/Dockerfile
       args:
         PHP_VERSION: 8.3
     container_name: my-laravel-app
@@ -55,7 +55,7 @@ services:
   app-dev:
     build:
       context: .
-      dockerfile: base/Dockerfile
+      dockerfile: fpm/Dockerfile
       args:
         PHP_VERSION: 8.3
     environment:
@@ -91,7 +91,7 @@ services:
 ```dockerfile
 # Build stage
 ARG PHP_VERSION=8.3
-FROM ghcr.io/lrconsultoria/php-base:${PHP_VERSION}-alpine as builder
+FROM ghcr.io/lrconsultoria/php-fpm:${PHP_VERSION}-alpine as builder
 
 WORKDIR /app
 COPY composer.json composer.lock ./
@@ -126,8 +126,8 @@ docker buildx create --name multiarch --driver docker-container --use
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --build-arg PHP_VERSION=8.3 \
-  -t my-php-base:8.3 \
-  -f base/Dockerfile \
+  -t my-php-fpm:8.3 \
+  -f fpm/Dockerfile \
   --push .
 ```
 
@@ -135,7 +135,7 @@ docker buildx build \
 ```bash
 #!/bin/bash
 PHP_VERSIONS=("8.2" "8.3" "8.4")
-VARIANTS=("base" "swoole" "nginx" "frankenphp")
+VARIANTS=("fpm" "swoole" "nginx" "frankenphp")
 
 for version in "${PHP_VERSIONS[@]}"; do
   for variant in "${VARIANTS[@]}"; do
@@ -156,7 +156,7 @@ done
 ### Teste de versão específica
 ```bash
 # Build imagem de teste
-docker build --build-arg PHP_VERSION=8.3 -t test-php:8.3 -f base/Dockerfile .
+docker build --build-arg PHP_VERSION=8.3 -t test-php:8.3 -f fpm/Dockerfile .
 
 # Verificar versão PHP
 docker run --rm test-php:8.3 php -v
@@ -174,7 +174,7 @@ for version in "8.2" "8.3" "8.4"; do
   echo "Testing PHP $version..."
   
   # Build
-  docker build --build-arg PHP_VERSION=$version -t test:$version -f base/Dockerfile .
+  docker build --build-arg PHP_VERSION=$version -t test:$version -f fpm/Dockerfile .
   
   # Test basic PHP
   docker run --rm test:$version php -v
@@ -196,12 +196,12 @@ done
 strategy:
   matrix:
     php-version: ['8.2', '8.3', '8.4']
-    variant: ['base', 'swoole', 'nginx', 'frankenphp']
+            variant: ['fpm', 'swoole', 'nginx', 'frankenphp']
     platform: ['linux/amd64', 'linux/arm64']
     include:
       # Combinações especiais
       - php-version: '8.3'
-        variant: 'base'
+        variant: 'fpm'
         platform: 'linux/amd64'
         push-latest: true
     exclude:
@@ -235,7 +235,7 @@ ENVIRONMENT=${1:-development}
 case $ENVIRONMENT in
   "development")
     PHP_VERSION="8.3"
-    VARIANT="base"
+    VARIANT="fpm"
     ;;
   "staging")
     PHP_VERSION="8.3"

@@ -158,7 +158,7 @@ docker-compose up -d --scale queue=3
 
 Todos os setups incluem health checks:
 
-- **Base**: `curl http://localhost/nginx-health`
+- **FPM**: `curl http://localhost/nginx-health`
 - **Swoole**: `curl http://localhost:8000/health`
 - **Nginx**: `curl http://localhost/nginx-health`
 - **FrankenPHP**: `curl http://localhost/health`

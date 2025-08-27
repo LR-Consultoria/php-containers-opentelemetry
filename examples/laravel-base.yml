@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
     container_name: laravel-app
     working_dir: /var/www
     volumes:
@@ -63,7 +63,7 @@ services:
 
   # Desenvolvimento - Queue Worker
   queue:
-    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
     container_name: laravel-queue
     working_dir: /var/www
     volumes:
@@ -85,7 +85,7 @@ services:
 
   # Desenvolvimento - Schedule Runner
   scheduler:
-    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
     container_name: laravel-scheduler
     working_dir: /var/www
     volumes:

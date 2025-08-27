@@ -68,7 +68,7 @@ services:
 
   # Queue Worker
   queue:
-    image: ghcr.io/lrconsultoria/php-base:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
     container_name: laravel-franken-queue
     working_dir: /var/www
     volumes:

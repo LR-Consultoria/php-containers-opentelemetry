@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.3']
-        variant: ['base', 'nginx', 'swoole', 'frankenphp']
+        variant: ['fpm', 'nginx', 'swoole', 'frankenphp']
         platforms: ['linux/amd64']
       fail-fast: false
       max-parallel: 2
@@ -50,8 +50,8 @@ jobs:
         # Convert repository owner to lowercase for Docker compatibility
         REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
-        if [ "${{ matrix.variant }}" = "base" ]; then
-          echo "name=php-base" >> $GITHUB_OUTPUT
+        if [ "${{ matrix.variant }}" = "fpm" ]; then
+          echo "name=php-fpm" >> $GITHUB_OUTPUT
         else
           echo "name=php-${{ matrix.variant }}" >> $GITHUB_OUTPUT
         fi
@@ -102,7 +102,7 @@ jobs:
         include:
           # Add ARM64 for main variants
           - php-version: '8.3'
-            variant: 'base'
+            variant: 'fpm'
             platforms: 'linux/arm64'
           - php-version: '8.3'
             variant: 'nginx'
@@ -116,7 +116,7 @@ jobs:
             platforms: 'linux/amd64'
           # PHP 8.2 (if needed)
           - php-version: '8.2'
-            variant: 'base'
+            variant: 'fpm'
             platforms: 'linux/amd64'
           - php-version: '8.2'
             variant: 'nginx'
@@ -147,8 +147,8 @@ jobs:
       run: |
         REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
-        if [ "${{ matrix.variant }}" = "base" ]; then
-          echo "name=php-base" >> $GITHUB_OUTPUT
+        if [ "${{ matrix.variant }}" = "fpm" ]; then
+          echo "name=php-fpm" >> $GITHUB_OUTPUT
         else
           echo "name=php-${{ matrix.variant }}" >> $GITHUB_OUTPUT
         fi
@@ -175,7 +175,7 @@ jobs:
       matrix:
         include:
           - php-version: '8.3'
-            variant: 'base'
+            variant: 'fpm'
           - php-version: '8.3'
             variant: 'nginx'
       max-parallel: 2
@@ -197,8 +197,8 @@ jobs:
       run: |
         REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
-        if [ "${{ matrix.variant }}" = "base" ]; then
-          echo "name=php-base" >> $GITHUB_OUTPUT
+        if [ "${{ matrix.variant }}" = "fpm" ]; then
+          echo "name=php-fpm" >> $GITHUB_OUTPUT
         else
           echo "name=php-${{ matrix.variant }}" >> $GITHUB_OUTPUT
         fi
@@ -237,7 +237,7 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.3'] # Only scan latest stable version
-        variant: ['base', 'nginx']
+        variant: ['fpm', 'nginx']
     
     steps:
     - name: Checkout repository
@@ -294,7 +294,7 @@ jobs:
       continue-on-error: true
       uses: actions/delete-package-versions@v4
       with:
-        package-name: php-base
+        package-name: php-fpm
         package-type: container
         min-versions-to-keep: 10
         delete-only-untagged-versions: true

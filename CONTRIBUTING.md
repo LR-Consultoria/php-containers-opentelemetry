@@ -19,7 +19,7 @@ cd php-docker
 make dev-setup
 
 # Teste o ambiente
-make test VERSION=8.3 VARIANT=base
+make test VERSION=8.3 VARIANT=fpm
 ```
 
 ### 3. Faça suas Mudanças
@@ -124,7 +124,7 @@ Antes de abrir um Pull Request, verifique:
 
 ```bash
 # Build específico
-make build VERSION=8.3 VARIANT=base
+make build VERSION=8.3 VARIANT=fpm
 
 # Build all
 make build-all
@@ -144,7 +144,7 @@ make test-all
 
 ```
 php-docker/
-├── base/               # Imagens base PHP-FPM
+├── fpm/               # Imagens FPM PHP-FPM
 ├── swoole/            # Variantes Swoole
 ├── nginx/             # Variantes Nginx
 ├── frankenphp/        # Variantes FrankenPHP
@@ -180,7 +180,7 @@ O que deveria acontecer.
 **Ambiente**
 - OS: [ex: Ubuntu 20.04]
 - Docker: [ex: 24.0.6]
-- Versão da Imagem: [ex: php-base:8.3-alpine]
+- Versão da Imagem: [ex: php-fpm:8.3-alpine]
 
 **Logs**
 ```

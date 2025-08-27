@@ -4,7 +4,7 @@
 REGISTRY ?= ghcr.io/lrconsultoria
 TAG_SUFFIX ?= alpine
 PHP_VERSIONS := 8.2 8.3 8.4
-VARIANTS := base swoole nginx frankenphp
+VARIANTS := fpm swoole nginx frankenphp
 
 # Colors
 BLUE := \033[0;34m
@@ -21,10 +21,10 @@ help: ## Show this help message
 	@echo "$(YELLOW)Available commands:$(NC)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-build: ## Build specific image (usage: make build VERSION=8.3 VARIANT=base)
+build: ## Build specific image (usage: make build VERSION=8.3 VARIANT=fpm)
 	@if [ -z "$(VERSION)" ] || [ -z "$(VARIANT)" ]; then \
 		echo "$(RED)Error: VERSION and VARIANT are required$(NC)"; \
-		echo "Usage: make build VERSION=8.3 VARIANT=base"; \
+		echo "Usage: make build VERSION=8.3 VARIANT=fpm"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Building $(VARIANT) image for PHP $(VERSION)...$(NC)"
@@ -34,10 +34,10 @@ build-all: ## Build all images
 	@echo "$(BLUE)Building all PHP Docker images...$(NC)"
 	@./scripts/build-all.sh $(TAG_SUFFIX)
 
-push: ## Push specific image (usage: make push VERSION=8.3 VARIANT=base)
+push: ## Push specific image (usage: make push VERSION=8.3 VARIANT=fpm)
 	@if [ -z "$(VERSION)" ] || [ -z "$(VARIANT)" ]; then \
 		echo "$(RED)Error: VERSION and VARIANT are required$(NC)"; \
-		echo "Usage: make push VERSION=8.3 VARIANT=base"; \
+		echo "Usage: make push VERSION=8.3 VARIANT=fpm"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Pushing $(VARIANT) image for PHP $(VERSION)...$(NC)"
@@ -47,10 +47,10 @@ push-all: ## Push all built images
 	@echo "$(BLUE)Pushing all PHP Docker images...$(NC)"
 	@./scripts/push-all.sh $(TAG_SUFFIX)
 
-test: ## Test specific image (usage: make test VERSION=8.3 VARIANT=base)
+test: ## Test specific image (usage: make test VERSION=8.3 VARIANT=fpm)
 	@if [ -z "$(VERSION)" ] || [ -z "$(VARIANT)" ]; then \
 		echo "$(RED)Error: VERSION and VARIANT are required$(NC)"; \
-		echo "Usage: make test VERSION=8.3 VARIANT=base"; \
+		echo "Usage: make test VERSION=8.3 VARIANT=fpm"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Testing $(VARIANT) image for PHP $(VERSION)...$(NC)"
@@ -77,7 +77,7 @@ clean-images: ## Remove all built images
 	@for version in $(PHP_VERSIONS); do \
 		for variant in $(VARIANTS); do \
 			image_name="php-$$variant"; \
-			if [ "$$variant" = "base" ]; then image_name="php-base"; fi; \
+			if [ "$$variant" = "fpm" ]; then image_name="php-fpm"; fi; \
 			docker rmi $(REGISTRY)/$$image_name:$$version-$(TAG_SUFFIX) 2>/dev/null || true; \
 		done \
 	done

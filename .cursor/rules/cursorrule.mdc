@@ -1,0 +1,24 @@
+---
+description: Regras para o projeto de images php
+globs:
+alwaysApply: true
+---
+### Dockerfile
+A verão atual do php é 8.4, já tem a versão alpha 8.5, mas vamos trabalhar com as versões 8;2 até 8.4
+O obejtivo é oferecer imagens que tenha as extensões opentelemetry e grpc, qualquer outra extensão que não venha por padrão na imagem não deve ser adicionado, as variantes swoole e frankenphp são objetivos principais, deixando as opções nginx e fpm como opcional.
+
+Os dockerfiles deve ser o mais agnósticos possível, use o máximo possível de argumentos e env do no dokerfile, para evitar repetição em vários arquivos.
+
+### GIT
+
+Nunca deve ser feito commit ou push pela IA
+Mensagens de commit devem ser feitas sempre em inglês e no formato adequado para exibição no github
+
+### Linguagem
+
+Sempre escreva código e comentários em inglês.
+O chat deve ser sempre em português;
+
+### testes
+
+der preferencia a rodar pipeline de testes em PR, melhor que na main, salvo o cenário onde o teste só pode ser feito na main.
