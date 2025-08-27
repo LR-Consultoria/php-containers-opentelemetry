@@ -21,14 +21,14 @@ Build Docker images for PHP projects.
 
 Arguments:
   version       PHP version (8.2, 8.3, 8.4)
-  variant       Image variant (base, swoole, nginx, franken)
+  variant       Image variant (base, swoole, nginx, frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
   $0 8.3 base
   $0 8.3 swoole
   $0 8.3 nginx dev
-  $0 8.4 franken latest
+  $0 8.4 frankenphp latest
 
 Environment Variables:
   REGISTRY      Docker registry (default: ghcr.io/lrconsultoria)
@@ -62,10 +62,10 @@ esac
 
 # Validate variant
 case $VARIANT in
-    base|swoole|nginx|franken)
+    base|swoole|nginx|frankenphp)
         ;;
     *)
-        echo "Error: Invalid variant '$VARIANT'. Supported: base, swoole, nginx, franken"
+        echo "Error: Invalid variant '$VARIANT'. Supported: base, swoole, nginx, frankenphp"
         exit 1
         ;;
 esac

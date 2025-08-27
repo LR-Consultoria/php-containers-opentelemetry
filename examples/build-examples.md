@@ -25,7 +25,7 @@ docker build --build-arg PHP_VERSION=8.2 -t my-php-swoole:8.2 -f swoole/Dockerfi
 docker build --build-arg PHP_VERSION=8.4 -t my-php-nginx:8.4 -f nginx/Dockerfile .
 
 # PHP 8.3 com FrankenPHP
-docker build --build-arg PHP_VERSION=8.3 -t my-php-franken:8.3 -f franken/Dockerfile .
+docker build --build-arg PHP_VERSION=8.3 -t my-php-frankenphp:8.3 -f frankenphp/Dockerfile .
 ```
 
 ## 🏗 Build com Docker Compose
@@ -135,7 +135,7 @@ docker buildx build \
 ```bash
 #!/bin/bash
 PHP_VERSIONS=("8.2" "8.3" "8.4")
-VARIANTS=("base" "swoole" "nginx" "franken")
+VARIANTS=("base" "swoole" "nginx" "frankenphp")
 
 for version in "${PHP_VERSIONS[@]}"; do
   for variant in "${VARIANTS[@]}"; do
@@ -196,7 +196,7 @@ done
 strategy:
   matrix:
     php-version: ['8.2', '8.3', '8.4']
-    variant: ['base', 'swoole', 'nginx', 'franken']
+    variant: ['base', 'swoole', 'nginx', 'frankenphp']
     platform: ['linux/amd64', 'linux/arm64']
     include:
       # Combinações especiais
@@ -207,7 +207,7 @@ strategy:
     exclude:
       # Excluir combinações problemáticas
       - php-version: '8.4'
-        variant: 'franken'
+        variant: 'frankenphp'
         platform: 'linux/arm64'
 
 steps:

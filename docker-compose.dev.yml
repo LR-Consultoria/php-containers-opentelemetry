@@ -54,9 +54,9 @@ services:
       - nginx
 
   # Test PHP FrankenPHP
-  php-franken-test:
-    image: ghcr.io/lrconsultoria/php-franken:8.3-alpine
-    container_name: test-php-franken
+  php-frankenphp-test:
+    image: ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
+    container_name: test-php-frankenphp
     working_dir: /var/www
     ports:
       - "8090:80"
@@ -68,7 +68,7 @@ services:
     networks:
       - test-network
     profiles:
-      - franken
+      - frankenphp
 
   # Database for testing
   test-database:
@@ -105,7 +105,7 @@ services:
       - php-base-test
       - php-swoole-test
       - php-nginx-test
-      - php-franken-test
+      - php-frankenphp-test
       - test-database
       - test-redis
     command: echo "All test services are running"

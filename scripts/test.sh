@@ -28,7 +28,7 @@ Test Docker images for PHP projects.
 
 Arguments:
   version       PHP version (8.2, 8.3, 8.4)
-  variant       Image variant (base, swoole, nginx, franken)
+  variant       Image variant (base, swoole, nginx, frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
@@ -71,7 +71,7 @@ case $PHP_VERSION in
 esac
 
 case $VARIANT in
-    base|swoole|nginx|franken) ;;
+    base|swoole|nginx|frankenphp) ;;
     *) echo "Error: Invalid variant '$VARIANT'"; exit 1 ;;
 esac
 
@@ -168,7 +168,7 @@ case $VARIANT in
             exit 1
         fi
         ;;
-    "franken")
+    "frankenphp")
         # Test FrankenPHP availability
         if docker run --rm "$FULL_IMAGE_NAME" frankenphp version | grep -q "FrankenPHP"; then
             echo -e "${GREEN}✅ FrankenPHP available${NC}"

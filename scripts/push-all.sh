@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 PHP_VERSIONS=("8.2" "8.3" "8.4")
-VARIANTS=("base" "swoole" "nginx" "franken")
+VARIANTS=("base" "swoole" "nginx" "frankenphp")
 TAG_SUFFIX=${1:-alpine}
 REGISTRY=${REGISTRY:-ghcr.io/lrconsultoria}
 

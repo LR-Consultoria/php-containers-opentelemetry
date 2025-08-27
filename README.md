@@ -52,7 +52,7 @@ docker pull ghcr.io/lrconsultoria/php-nginx:8.3-alpine
 
 ### Com FrankenPHP
 ```bash
-docker pull ghcr.io/lrconsultoria/php-franken:8.3-alpine
+docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
 ```
 
 ## 🏗 Build Local
@@ -65,7 +65,7 @@ docker pull ghcr.io/lrconsultoria/php-franken:8.3-alpine
 ./scripts/build.sh 8.3 base
 ./scripts/build.sh 8.3 swoole
 ./scripts/build.sh 8.3 nginx
-./scripts/build.sh 8.3 franken
+./scripts/build.sh 8.3 frankenphp
 ```
 
 ## 📁 Estrutura do Projeto
@@ -75,7 +75,7 @@ php-docker/
 ├── base/           # Dockerfiles base para cada versão PHP
 ├── swoole/         # Variantes com Swoole
 ├── nginx/          # Variantes com Nginx
-├── franken/        # Variantes com FrankenPHP
+├── frankenphp/     # Variantes com FrankenPHP
 ├── scripts/        # Scripts de build e automação
 ├── examples/       # Exemplos de docker-compose
 └── configs/        # Configurações compartilhadas

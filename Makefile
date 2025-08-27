@@ -4,7 +4,7 @@
 REGISTRY ?= ghcr.io/lrconsultoria
 TAG_SUFFIX ?= alpine
 PHP_VERSIONS := 8.2 8.3 8.4
-VARIANTS := base swoole nginx franken
+VARIANTS := base swoole nginx frankenphp
 
 # Colors
 BLUE := \033[0;34m
