@@ -1,0 +1,20 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Always use LF for shell scripts
+*.sh text eol=lf
+
+# Always use LF for Docker and config files  
+Dockerfile* text eol=lf
+*.conf text eol=lf
+*.ini text eol=lf
+Caddyfile text eol=lf
+
+# Always use LF for YAML and Markdown
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+
+# Ensure these files are always treated as text with LF
+configs/* text eol=lf
+scripts/* text eol=lf
