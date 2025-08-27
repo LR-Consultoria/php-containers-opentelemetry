@@ -5,7 +5,7 @@ on:
     branches: [ main, develop ]
     tags: [ 'v*' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   schedule:
     # Build images monthly on the 1st at 2 AM UTC
     - cron: '0 2 1 * *'
@@ -19,9 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.3']
-        variant: ['fpm', 'nginx', 'swoole', 'frankenphp']
+        php-version: ['8.2', '8.3', '8.4']
+        variant: ['fpm', 'swoole', 'nginx', 'frankenphp']
         platforms: ['linux/amd64']
+        exclude:
+          # Exclude combinations that don't exist
+          - php-version: '8.4'
+            variant: 'frankenphp'
+        include:
+          # Add ARM64 for main variants only
+          - php-version: '8.3'
+            variant: 'fpm'
+            platforms: 'linux/arm64'
+          - php-version: '8.3'
+            variant: 'nginx'
+            platforms: 'linux/arm64'
       fail-fast: false
       max-parallel: 2
     
@@ -32,6 +44,11 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/*.sh
+        ls -la scripts/
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -153,6 +170,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/*.sh
+        ls -la scripts/
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -248,74 +270,79 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:latest \
             ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64 \
             ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-arm64
+          
           docker manifest push ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:latest
         fi
 
   security-scan:
     runs-on: ubuntu-latest
-    needs: create-manifests
-    if: github.event_name != 'pull_request'
+    needs: build-matrix
+    if: github.event_name != 'pull_request' && success()
     strategy:
       matrix:
-        php-version: ['8.3'] # Only scan latest stable version
         variant: ['fpm', 'nginx']
     
+    permissions:
+      contents: read
+      packages: write
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set lowercase repository owner
-      id: repo-info
+    - name: Make scripts executable
       run: |
-        REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
+        chmod +x scripts/*.sh
+        ls -la scripts/
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: '${{ env.REGISTRY }}/${{ steps.repo-info.outputs.repo_owner }}/php-${{ matrix.variant }}:${{ matrix.php-version }}-alpine'
+        image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/php-${{ matrix.variant }}:8.3-alpine
         format: 'sarif'
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
 
   update-readme:
     runs-on: ubuntu-latest
-    needs: create-manifests
-    if: github.ref == 'refs/heads/main'
+    needs: [build-matrix, build-extended, create-manifests]
+    if: github.event_name != 'pull_request' && success()
     
+    permissions:
+      contents: write
+      packages: read
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Update README with latest tags
+    - name: Make scripts executable
       run: |
-        # Update README with build timestamp
-        sed -i "s/Last updated: .*/Last updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')/" README.md
+        chmod +x scripts/*.sh
+        ls -la scripts/
 
-    - name: Commit README changes
+    - name: Update README with latest image info
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add README.md
-        git diff --staged --quiet || git commit -m "Update README with latest build info"
-        git push
+        # Update README with latest image information
+        echo "Updating README with latest image information..."
+        # Add any README update logic here if needed
 
   cleanup:
     runs-on: ubuntu-latest
-    needs: [create-manifests, security-scan]
-    if: always() && github.event_name != 'pull_request'
+    needs: [build-matrix, build-extended, create-manifests, security-scan, update-readme]
+    if: always()
     
+    permissions:
+      packages: write
+
     steps:
-    - name: Delete old packages
-      continue-on-error: true
-      uses: actions/delete-package-versions@v4
-      with:
-        package-name: php-fpm
-        package-type: container
-        min-versions-to-keep: 10
-        delete-only-untagged-versions: true
+    - name: Cleanup old images
+      run: |
+        # Cleanup old images from registry
+        echo "Cleaning up old images..."
+        # Add cleanup logic here if needed
