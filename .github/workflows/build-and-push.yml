@@ -85,7 +85,7 @@ jobs:
         cache-to: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }},mode=max
 
     - name: Test image
-      if: ${{ github.event_name != 'pull_request' }}
+      if: ${{ github.event_name == 'pull_request' }}
       run: |
         # Pull the built image 
         docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64
