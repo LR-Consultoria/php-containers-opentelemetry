@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.3']
-        variant: ['base', 'nginx', 'swoole', 'frankenphp']
+        variant: ['fpm', 'nginx', 'swoole', 'frankenphp']
         platforms: ['linux/amd64']
       fail-fast: false
       max-parallel: 2
@@ -102,7 +102,7 @@ jobs:
         include:
           # Add ARM64 for main variants
           - php-version: '8.3'
-            variant: 'base'
+            variant: 'fpm'
             platforms: 'linux/arm64'
           - php-version: '8.3'
             variant: 'nginx'
