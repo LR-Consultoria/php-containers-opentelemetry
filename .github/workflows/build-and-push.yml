@@ -85,13 +85,24 @@ jobs:
         cache-to: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }},mode=max
 
     - name: Test image
-      if: ${{ github.event_name != 'pull_request' }}
       run: |
-        # Test the built image that was just pushed
-        docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64
-        
-        # Run basic tests
-        REGISTRY=${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }} ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine-amd64
+        # For PRs, test the locally built image
+        # For pushes, test the pushed image
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo "Testing locally built image for PR..."
+          echo "Image name: ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64"
+          # List available images for debugging
+          docker images | grep "${{ steps.image-name.outputs.name }}"
+          # Use the locally built image name
+          REGISTRY=${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }} ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine-amd64
+        else
+          echo "Testing pushed image..."
+          # Test the built image that was just pushed
+          docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64
+          
+          # Run basic tests
+          REGISTRY=${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }} ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine-amd64
+        fi
 
   build-extended:
     runs-on: ubuntu-latest
