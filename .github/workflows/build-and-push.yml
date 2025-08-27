@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.3']
-        variant: ['fpm', 'nginx', 'swoole', 'frankenphp']
+        variant: ['base', 'nginx', 'swoole', 'frankenphp']
         platforms: ['linux/amd64']
       fail-fast: false
       max-parallel: 2
@@ -87,11 +87,11 @@ jobs:
     - name: Test image
       if: ${{ github.event_name != 'pull_request' }}
       run: |
-        # Pull the built image 
+        # Test the built image that was just pushed
         docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64
         
         # Run basic tests
-        ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine
+        REGISTRY=${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }} ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine-amd64
 
   build-extended:
     runs-on: ubuntu-latest
@@ -102,7 +102,7 @@ jobs:
         include:
           # Add ARM64 for main variants
           - php-version: '8.3'
-            variant: 'fpm'
+            variant: 'base'
             platforms: 'linux/arm64'
           - php-version: '8.3'
             variant: 'nginx'
