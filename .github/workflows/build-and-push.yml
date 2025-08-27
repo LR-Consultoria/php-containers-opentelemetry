@@ -91,8 +91,18 @@ jobs:
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           echo "Testing locally built image for PR..."
           echo "Image name: ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64"
-          # List available images for debugging
-          docker images | grep "${{ steps.image-name.outputs.name }}"
+          echo "Repository owner: ${{ steps.image-name.outputs.repo_owner }}"
+          echo "Image name: ${{ steps.image-name.outputs.name }}"
+          echo "PHP version: ${{ matrix.php-version }}"
+          echo "Variant: ${{ matrix.variant }}"
+          
+          # List all available images for debugging
+          echo "All available images:"
+          docker images
+          echo ""
+          echo "Images matching ${{ steps.image-name.outputs.name }}:"
+          docker images | grep "${{ steps.image-name.outputs.name }}" || echo "No images found"
+          
           # Use the locally built image name
           REGISTRY=${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }} ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine-amd64
         else
