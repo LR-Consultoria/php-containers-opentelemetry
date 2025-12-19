@@ -9,10 +9,10 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 ## 🐳 Imagens Disponíveis
 
 ### Versões PHP Suportadas
-- **PHP 8.2** - Versão LTS com suporte estendido
-- **PHP 8.3** - Versão estável (suporte de segurança)
-- **PHP 8.4** - Versão recomendada
-- **PHP 8.5** - Versão mais recente com últimas features
+- **PHP 8.2** - Versão estável (suporte de segurança)
+- **PHP 8.3** - Versão estável (suporte ativo)
+- **PHP 8.4** - Versão estável (suporte ativo)
+- **PHP 8.5** - Versão recomendada (suporte ativo)
 
 ### Variantes Disponíveis
 
@@ -195,5 +195,5 @@ Contributions são bem-vindas! Leia nosso [CONTRIBUTING.md](CONTRIBUTING.md) par
 
 ---
 
-**Last updated**: 2024-12-19 23:30:00 UTC
+**Last updated**: 2025-12-19 10:55:00 UTC
 **Made with ❤️ by [LR Consultoria](https://lrconsultoria.com.br)**

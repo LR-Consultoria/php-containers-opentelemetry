@@ -62,7 +62,7 @@ services:
       APP_ENV: local
     profiles: [dev]
 
-  # Produção - PHP 8.2 (LTS)
+  # Produção - PHP 8.2 (Suporte de Segurança)
   app-prod:
     build:
       context: .
@@ -242,7 +242,7 @@ case $ENVIRONMENT in
     VARIANT="nginx"
     ;;
   "production")
-    PHP_VERSION="8.2"  # LTS para produção
+    PHP_VERSION="8.2"  # PHP estável (suporte de segurança)
     VARIANT="nginx"
     ;;
   "performance")
