@@ -2,8 +2,10 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-swoole:8.3-alpine
     container_name: laravel-app
+    ports:
+      - "8000:8000"
     working_dir: /var/www
     volumes:
       - ./src:/var/www
@@ -21,20 +23,8 @@ services:
       - database
       - redis
 
-  nginx:
-    image: nginx:alpine
-    container_name: laravel-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./src:/var/www
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    networks:
-      - laravel
-    depends_on:
-      - app
+  # Web Server
+  # (Swoole handles its own HTTP traffic on port 8000 by default)
 
   database:
     image: mysql:8.0
@@ -63,7 +53,7 @@ services:
 
   # Desenvolvimento - Queue Worker
   queue:
-    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-swoole:8.3-alpine
     container_name: laravel-queue
     working_dir: /var/www
     volumes:
@@ -85,7 +75,7 @@ services:
 
   # Desenvolvimento - Schedule Runner
   scheduler:
-    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
+    image: ghcr.io/lrconsultoria/php-swoole:8.3-alpine
     container_name: laravel-scheduler
     working_dir: /var/www
     volumes:

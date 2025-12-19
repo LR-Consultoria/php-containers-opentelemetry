@@ -10,16 +10,15 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 
 ### Versões PHP Suportadas
 - **PHP 8.2** - Versão LTS com suporte estendido
-- **PHP 8.3** - Versão estável atual (recomendada)  
-- **PHP 8.4** - Versão mais recente com últimas features
+- **PHP 8.3** - Versão estável (suporte de segurança)
+- **PHP 8.4** - Versão recomendada
+- **PHP 8.5** - Versão mais recente com últimas features
 
 ### Variantes Disponíveis
 
 | Variante | Descrição | Porta | Uso Recomendado |
 |----------|-----------|-------|-----------------|
-| **FPM** | PHP-FPM com extensões essenciais | 9000 | Desenvolvimento tradicional |
 | **Swoole** | Extensão Swoole para alta performance | 8000 | APIs de alta performance |
-| **Nginx** | PHP-FPM + Nginx integrado | 80/443 | Aplicações web completas |
 | **FrankenPHP** | Servidor moderno com HTTP/2 e HTTP/3 | 80/443 | Aplicações modernas |
 
 ## 🛠 Características
@@ -35,19 +34,9 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 
 ## 📦 Uso Rápido
 
-### Imagem FPM
-```bash
-docker pull ghcr.io/lrconsultoria/php-fpm:8.3-alpine
-```
-
 ### Com Swoole
 ```bash
 docker pull ghcr.io/lrconsultoria/php-swoole:8.3-alpine
-```
-
-### Com Nginx
-```bash
-docker pull ghcr.io/lrconsultoria/php-nginx:8.3-alpine
 ```
 
 ### Com FrankenPHP
@@ -62,9 +51,7 @@ docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
 ./scripts/build-all.sh
 
 # Build versão específica
-./scripts/build.sh 8.3 fpm
 ./scripts/build.sh 8.3 swoole
-./scripts/build.sh 8.3 nginx
 ./scripts/build.sh 8.3 frankenphp
 ```
 
@@ -72,9 +59,7 @@ docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
 
 ```
 php-docker/
-├── fpm/           # Dockerfiles FPM para cada versão PHP
 ├── swoole/         # Variantes com Swoole
-├── nginx/          # Variantes com Nginx
 ├── frankenphp/     # Variantes com FrankenPHP
 ├── scripts/        # Scripts de build e automação
 ├── examples/       # Exemplos de docker-compose

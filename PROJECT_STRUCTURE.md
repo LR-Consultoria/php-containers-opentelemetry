@@ -9,11 +9,7 @@ php-docker/
 ├── .github/                    # GitHub Actions e automação
 │   └── workflows/
 │       └── build-and-push.yml  # CI/CD pipeline principal
-├── fpm/                       # Imagens FPM PHP-FPM
-│   └── Dockerfile              # Dockerfile parametrizado
 ├── swoole/                     # Variantes com Swoole
-│   └── Dockerfile              # Dockerfile parametrizado
-├── nginx/                      # Variantes com Nginx
 │   └── Dockerfile              # Dockerfile parametrizado
 ├── frankenphp/                 # Variantes com FrankenPHP
 │   └── Dockerfile              # Dockerfile parametrizado
@@ -21,9 +17,6 @@ php-docker/
 │   ├── php-production.ini      # Config PHP produção
 │   ├── php-swoole.ini         # Config PHP Swoole
 │   ├── php-franken.ini        # Config PHP FrankenPHP
-│   ├── php-fpm.conf           # Config PHP-FPM
-│   ├── nginx.conf             # Config Nginx principal
-│   ├── default.conf           # Config Nginx virtual host
 │   ├── supervisord.conf       # Config Supervisor
 │   ├── Caddyfile              # Config Caddy/FrankenPHP
 │   └── entrypoint.sh          # Script de inicialização
@@ -35,7 +28,6 @@ php-docker/
 ├── examples/                   # Exemplos docker-compose
 │   ├── laravel-base.yml       # Setup base
 │   ├── laravel-swoole.yml     # Setup Swoole
-│   ├── laravel-nginx.yml      # Setup Nginx
 │   ├── laravel-frankenphp.yml # Setup FrankenPHP
 │   ├── env.example            # Variáveis exemplo
 │   └── README.md              # Documentação exemplos
@@ -71,10 +63,8 @@ Isso permite:
 
 | Imagem | Tag | Descrição |
 |--------|-----|-----------|
-| `php-fpm` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP-FPM base |
-| `php-swoole` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP + Swoole |
-| `php-nginx` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | PHP-FPM + Nginx |
-| `php-frankenphp` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine` | FrankenPHP |
+| `php-swoole` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine`, `8.5-alpine` | PHP + Swoole |
+| `php-frankenphp` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine`, `8.5-alpine` | FrankenPHP |
 
 ## ⚙️ Configurações
 
@@ -92,9 +82,7 @@ Isso permite:
 - MySQL/PostgreSQL clients
 
 ### Portas Expostas
-- **FPM**: 9000 (PHP-FPM)
 - **Swoole**: 8000 (HTTP)
-- **Nginx**: 80, 443 (HTTP/HTTPS)
 - **FrankenPHP**: 80, 443 (HTTP/HTTPS)
 
 ## 🛠 Scripts de Automação
@@ -131,16 +119,16 @@ Testa uma imagem específica.
 ## 🚀 Makefile Targets
 
 ### Build
-- `make build VERSION=8.3 VARIANT=fpm` - Build específico
+- `make build VERSION=8.3 VARIANT=swoole` - Build específico
 - `make build-all` - Build todas
 - `make build-matrix` - Build multi-platform
 
 ### Test
-- `make test VERSION=8.3 VARIANT=fpm` - Teste específico
+- `make test VERSION=8.3 VARIANT=swoole` - Teste específico
 - `make test-all` - Teste todas
 
 ### Push
-- `make push VERSION=8.3 VARIANT=fpm` - Push específico
+- `make push VERSION=8.3 VARIANT=swoole` - Push específico
 - `make push-all` - Push todas
 
 ### Desenvolvimento
@@ -165,7 +153,7 @@ O pipeline automatizado (`build-and-push.yml`):
    - Schedule mensal
 
 2. **Matrix Build**:
-   - 3 versões PHP × 4 variantes = 12 imagens
+   - 4 versões PHP × 2 variantes = 8 imagens
    - Multi-platform (AMD64/ARM64)
    - Builds paralelos
 
@@ -206,16 +194,13 @@ O pipeline automatizado (`build-and-push.yml`):
 
 Todas as imagens incluem health checks:
 
-- **FPM**: Verifica PHP-FPM via ping
 - **Swoole**: HTTP GET `/health`
-- **Nginx**: HTTP GET `/nginx-health`
 - **FrankenPHP**: HTTP GET `/health`
 
 ## 📊 Monitoramento
 
 ### Logs
 - Aplicação: `/proc/self/fd/2` (stderr)
-- Nginx: `/var/log/nginx/`
 - Supervisor: `/var/log/supervisor/`
 
 ### Metrics
@@ -232,7 +217,6 @@ Todas as imagens incluem health checks:
 - No sensitive data in images
 
 ### Scanning
-- FPM image vulnerabilities
 - Dependency scanning
 - Regular security updates
 
@@ -244,8 +228,8 @@ Todas as imagens incluem health checks:
 make dev-setup
 
 # Build e teste
-make build VERSION=8.3 VARIANT=fpm
-make test VERSION=8.3 VARIANT=fpm
+make build VERSION=8.3 VARIANT=swoole
+make test VERSION=8.3 VARIANT=swoole
 ```
 
 ### 2. Contribuição
@@ -275,7 +259,6 @@ git push origin feature/nova-feature
 ## 📈 Roadmap
 
 ### Futuro
-- [ ] PHP 8.5 support
 - [ ] More PHP extensions
 - [ ] Performance optimizations
 - [ ] Better monitoring

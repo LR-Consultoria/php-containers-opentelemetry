@@ -38,8 +38,8 @@ make test VERSION=8.3 VARIANT=swoole
 make test-all
 
 # Build e teste
-make build VERSION=8.3 VARIANT=nginx
-make test VERSION=8.3 VARIANT=nginx
+make build VERSION=8.3 VARIANT=swoole
+make test VERSION=8.3 VARIANT=swoole
 ```
 
 ### 5. Commit e Push
@@ -144,9 +144,7 @@ make test-all
 
 ```
 php-docker/
-├── fpm/               # Imagens FPM PHP-FPM
 ├── swoole/            # Variantes Swoole
-├── nginx/             # Variantes Nginx
 ├── frankenphp/        # Variantes FrankenPHP
 ├── configs/           # Configurações compartilhadas
 ├── scripts/           # Scripts de build e teste
@@ -180,7 +178,7 @@ O que deveria acontecer.
 **Ambiente**
 - OS: [ex: Ubuntu 20.04]
 - Docker: [ex: 24.0.6]
-- Versão da Imagem: [ex: php-fpm:8.3-alpine]
+- Versão da Imagem: [ex: php-swoole:8.3-alpine]
 
 **Logs**
 ```

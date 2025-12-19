@@ -16,28 +16,28 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}📋 Available PHP Versions: 8.2, 8.3, 8.4${NC}"
-echo -e "${BLUE}📦 Available Variants: fpm, swoole, nginx, frankenphp${NC}"
+echo -e "${BLUE}📦 Available Variants: swoole, frankenphp${NC}"
 echo ""
 
 echo -e "${YELLOW}🏗 Build Command Examples:${NC}"
 echo ""
 
 echo -e "${GREEN}1. Traditional approach (using our scripts):${NC}"
-echo "   ./scripts/build.sh 8.3 fpm alpine"
+echo "   ./scripts/build.sh 8.3 swoole alpine"
 echo "   ./scripts/build.sh 8.4 swoole alpine"
 echo ""
 
 echo -e "${GREEN}2. Direct Docker commands (using build args):${NC}"
-echo "   docker build --build-arg PHP_VERSION=8.3 -t my-php-fpm:8.3 -f fpm/Dockerfile ."
+echo "   docker build --build-arg PHP_VERSION=8.3 -t my-php-swoole:8.3 -f swoole/Dockerfile ."
 echo "   docker build --build-arg PHP_VERSION=8.2 -t my-php-swoole:8.2 -f swoole/Dockerfile ."
-echo "   docker build --build-arg PHP_VERSION=8.4 -t my-php-nginx:8.4 -f nginx/Dockerfile ."
+echo "   docker build --build-arg PHP_VERSION=8.4 -t my-php-frankenphp:8.4 -f frankenphp/Dockerfile ."
 echo ""
 
 echo -e "${GREEN}3. Multi-platform builds:${NC}"
 echo "   docker buildx build --platform linux/amd64,linux/arm64 \\"
 echo "     --build-arg PHP_VERSION=8.3 \\"
-echo "     -t my-php-fpm:8.3 \\"
-echo "     -f fpm/Dockerfile ."
+echo "     -t my-php-swoole:8.3 \\"
+echo "     -f swoole/Dockerfile ."
 echo ""
 
 echo -e "${GREEN}4. Docker Compose with build args:${NC}"
@@ -46,7 +46,7 @@ cat << 'EOF'
      app:
        build:
          context: .
-         dockerfile: fpm/Dockerfile
+         dockerfile: swoole/Dockerfile
          args:
            PHP_VERSION: 8.3
 EOF
@@ -61,15 +61,13 @@ echo "   ✅ Simplified CI/CD pipelines"
 echo ""
 
 echo -e "${YELLOW}📁 New directory structure:${NC}"
-echo "   fpm/Dockerfile     (was fpm/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
-echo "   swoole/Dockerfile   (was swoole/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
-echo "   nginx/Dockerfile    (was nginx/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
-echo "   frankenphp/Dockerfile  (was franken/Dockerfile.8.2, Dockerfile.8.3, Dockerfile.8.4)"
+echo "   swoole/Dockerfile     (unified Dockerfile)"
+echo "   frankenphp/Dockerfile (unified Dockerfile)"
 echo ""
 
 echo -e "${BLUE}🚀 Try it yourself:${NC}"
-echo "   make build VERSION=8.3 VARIANT=fpm"
-echo "   make test VERSION=8.3 VARIANT=fpm"
+echo "   make build VERSION=8.3 VARIANT=swoole"
+echo "   make test VERSION=8.3 VARIANT=swoole"
 echo ""
 
 echo -e "${GREEN}✨ Refactoring completed successfully!${NC}"

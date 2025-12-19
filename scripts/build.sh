@@ -20,14 +20,14 @@ Usage: $0 <version> <variant> [tag_suffix]
 Build Docker images for PHP projects.
 
 Arguments:
-  version       PHP version (8.2, 8.3, 8.4)
-  variant       Image variant (fpm, swoole, nginx, frankenphp)
+  version       PHP version (8.2, 8.3, 8.4, 8.5)
+  variant       Image variant (swoole, frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
-  $0 8.3 fpm
   $0 8.3 swoole
-  $0 8.3 nginx dev
+  $0 8.3 frankenphp
+  $0 8.3 swoole dev
   $0 8.4 frankenphp latest
 
 Environment Variables:
@@ -52,30 +52,26 @@ TAG_SUFFIX=${3:-alpine}
 
 # Validate PHP version
 case $PHP_VERSION in
-    8.2|8.3|8.4)
+    8.2|8.3|8.4|8.5)
         ;;
     *)
-        echo "Error: Invalid PHP version '$PHP_VERSION'. Supported: 8.2, 8.3, 8.4"
+        echo "Error: Invalid PHP version '$PHP_VERSION'. Supported: 8.2, 8.3, 8.4, 8.5"
         exit 1
         ;;
 esac
 
 # Validate variant
 case $VARIANT in
-    fpm|swoole|nginx|frankenphp)
+    swoole|frankenphp)
         ;;
     *)
-        echo "Error: Invalid variant '$VARIANT'. Supported: fpm, swoole, nginx, frankenphp"
+        echo "Error: Invalid variant '$VARIANT'. Supported: swoole, frankenphp"
         exit 1
         ;;
 esac
 
 # Set image names
-if [ "$VARIANT" = "fpm" ]; then
-    IMAGE_NAME="php-fpm"
-else
-    IMAGE_NAME="php-$VARIANT"
-fi
+IMAGE_NAME="php-$VARIANT"
 
 TAG="$PHP_VERSION-$TAG_SUFFIX"
 FULL_IMAGE_NAME="$REGISTRY/$IMAGE_NAME:$TAG"

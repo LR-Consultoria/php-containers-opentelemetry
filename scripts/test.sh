@@ -37,14 +37,13 @@ Usage: $0 <version> <variant> [tag_suffix]
 Test Docker images for PHP projects.
 
 Arguments:
-  version       PHP version (8.2, 8.3, 8.4)
-  variant       Image variant (fpm, swoole, nginx, frankenphp)
+  version       PHP version (8.2, 8.3, 8.4, 8.5)
+  variant       Image variant (swoole, frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
-  $0 8.3 fpm
   $0 8.3 swoole
-  $0 8.3 nginx
+  $0 8.3 frankenphp
 
 Environment Variables:
   REGISTRY      Docker registry (default: ghcr.io/lrconsultoria)
@@ -76,21 +75,17 @@ TAG_SUFFIX=${3:-alpine}
 
 # Validate inputs
 case $PHP_VERSION in
-    8.2|8.3|8.4) ;;
+    8.2|8.3|8.4|8.5) ;;
     *) echo "Error: Invalid PHP version '$PHP_VERSION'"; exit 1 ;;
 esac
 
 case $VARIANT in
-    fpm|swoole|nginx|frankenphp) ;;
+    swoole|frankenphp) ;;
     *) echo "Error: Invalid variant '$VARIANT'"; exit 1 ;;
 esac
 
 # Set image names
-if [ "$VARIANT" = "fpm" ]; then
-    IMAGE_NAME="php-fpm"
-else
-    IMAGE_NAME="php-$VARIANT"
-fi
+IMAGE_NAME="php-$VARIANT"
 
 TAG="$PHP_VERSION-$TAG_SUFFIX"
 FULL_IMAGE_NAME="$REGISTRY/$IMAGE_NAME:$TAG"
@@ -172,36 +167,12 @@ fi
 # Test 5: Basic container startup
 echo -e "${YELLOW}Test 5: Testing container startup...${NC}"
 case $VARIANT in
-    "fpm")
-        echo "Starting FPM container for testing..."
-        docker run -d --name "$CONTAINER_NAME" "$FULL_IMAGE_NAME" >/dev/null 2>&1
-        sleep 3
-        if docker ps -f name="$CONTAINER_NAME" | grep -q "$CONTAINER_NAME"; then
-            echo -e "${GREEN}✅ Container started successfully${NC}"
-        else
-            echo -e "${YELLOW}⚠️  Container failed to start (continuing anyway)${NC}"
-            echo "Container logs:"
-            docker logs "$CONTAINER_NAME" 2>/dev/null || echo "No logs available"
-        fi
-        ;;
     "swoole")
         # Test Swoole extension
         if docker run --rm "$FULL_IMAGE_NAME" php -m | grep -q "swoole"; then
             echo -e "${GREEN}✅ Swoole extension loaded${NC}"
         else
             echo -e "${YELLOW}⚠️  Swoole extension not found (continuing anyway)${NC}"
-        fi
-        ;;
-    "nginx")
-        echo "Starting Nginx container for testing..."
-        docker run -d --name "$CONTAINER_NAME" -p 0:80 "$FULL_IMAGE_NAME" >/dev/null 2>&1
-        sleep 5
-        if docker ps -f name="$CONTAINER_NAME" | grep -q "$CONTAINER_NAME"; then
-            echo -e "${GREEN}✅ Nginx + PHP-FPM container started successfully${NC}"
-        else
-            echo -e "${YELLOW}⚠️  Container failed to start (continuing anyway)${NC}"
-            echo "Container logs:"
-            docker logs "$CONTAINER_NAME" 2>/dev/null || echo "No logs available"
         fi
         ;;
     "frankenphp")

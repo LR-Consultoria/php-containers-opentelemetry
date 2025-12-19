@@ -5,9 +5,8 @@ Esta pasta contém exemplos de configurações Docker Compose para diferentes ce
 ## 📁 Arquivos Disponíveis
 
 ### Configurações Principais
-- `laravel-base.yml` - Setup básico com PHP-FPM + Nginx separado
+- `laravel-base.yml` - Setup básico com Swoole
 - `laravel-swoole.yml` - Setup com Swoole para alta performance
-- `laravel-nginx.yml` - Setup com Nginx integrado para produção
 - `laravel-frankenphp.yml` - Setup com FrankenPHP para desenvolvimento moderno
 
 ### Arquivos de Suporte
@@ -17,7 +16,7 @@ Esta pasta contém exemplos de configurações Docker Compose para diferentes ce
 
 ## 🚀 Como Usar
 
-### 1. Setup Básico (PHP-FPM + Nginx)
+### 1. Setup Básico (Swoole)
 ```bash
 # Copie e ajuste as variáveis
 cp examples/env.example .env
@@ -25,7 +24,7 @@ cp examples/env.example .env
 # Inicie os serviços
 docker-compose -f examples/laravel-base.yml up -d
 
-# Acesse: http://localhost
+# Acesse: http://localhost:8000
 ```
 
 ### 2. Setup com Swoole (Alta Performance)
@@ -39,19 +38,7 @@ docker-compose -f examples/laravel-swoole.yml up -d
 # Acesse: http://localhost:8000
 ```
 
-### 3. Setup com Nginx Integrado (Produção)
-```bash
-# Configure para produção
-cp examples/env.example .env
-# Edite as variáveis para produção
-
-# Inicie
-docker-compose -f examples/laravel-nginx.yml up -d
-
-# Acesse: http://localhost
-```
-
-### 4. Setup com FrankenPHP (Moderno)
+### 3. Setup com FrankenPHP (Moderno)
 ```bash
 # Configure
 cp examples/env.example .env
@@ -158,9 +145,7 @@ docker-compose up -d --scale queue=3
 
 Todos os setups incluem health checks:
 
-- **FPM**: `curl http://localhost/nginx-health`
 - **Swoole**: `curl http://localhost:8000/health`
-- **Nginx**: `curl http://localhost/nginx-health`
 - **FrankenPHP**: `curl http://localhost/health`
 
 ## 📊 Monitoramento
@@ -169,9 +154,6 @@ Todos os setups incluem health checks:
 ```bash
 # Aplicação
 docker-compose logs -f app
-
-# Nginx
-docker-compose logs -f nginx
 
 # Database
 docker-compose logs -f database
@@ -182,7 +164,6 @@ docker-compose logs -f queue
 
 ### Performance
 - **Swoole**: Monitor via Laravel Telescope ou custom endpoints
-- **Nginx**: Logs em `./logs/nginx/`
 - **FrankenPHP**: Built-in metrics via Caddy
 
 ## 🛡 Segurança para Produção
