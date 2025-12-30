@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4', '8.5']
-        variant: ['swoole', 'frankenphp']
+        php-version: ['8.2', '8.3', '8.4']
+        variant: ['frankenphp']
         platforms: ['linux/amd64', 'linux/arm64']
         #exclude:
           # Exclude combinations that don't exist

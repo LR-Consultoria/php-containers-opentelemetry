@@ -11,14 +11,13 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 ### Versões PHP Suportadas
 - **PHP 8.2** - Versão estável (suporte de segurança)
 - **PHP 8.3** - Versão estável (suporte ativo)
-- **PHP 8.4** - Versão estável (suporte ativo)
-- **PHP 8.5** - Versão recomendada (suporte ativo)
+- **PHP 8.4** - Versão estável recomendado (suporte ativo)
+- **PHP 8.4** - em breve
 
 ### Variantes Disponíveis
 
 | Variante | Descrição | Porta | Uso Recomendado |
 |----------|-----------|-------|-----------------|
-| **Swoole** | Extensão Swoole para alta performance | 8000 | APIs de alta performance |
 | **FrankenPHP** | Servidor moderno com HTTP/2 e HTTP/3 | 80/443 | Aplicações modernas |
 
 ## 🛠 Características
@@ -34,11 +33,6 @@ Este repositório contém Dockerfiles para imagens base PHP otimizadas para proj
 
 ## 📦 Uso Rápido
 
-### Com Swoole
-```bash
-docker pull ghcr.io/lrconsultoria/php-swoole:8.3-alpine
-```
-
 ### Com FrankenPHP
 ```bash
 docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
@@ -51,7 +45,6 @@ docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
 ./scripts/build-all.sh
 
 # Build versão específica
-./scripts/build.sh 8.3 swoole
 ./scripts/build.sh 8.3 frankenphp
 ```
 
@@ -59,7 +52,6 @@ docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
 
 ```
 php-docker/
-├── swoole/         # Variantes com Swoole
 ├── frankenphp/     # Variantes com FrankenPHP
 ├── scripts/        # Scripts de build e automação
 ├── examples/       # Exemplos de docker-compose
@@ -72,7 +64,6 @@ php-docker/
 - **Core**: bcmath, calendar, ctype, curl, dom, exif, fileinfo, filter, ftp, gd, gettext, hash, iconv, json, libxml, mbstring, mysqli, openssl, pcre, PDO, pdo_mysql, pdo_pgsql, pdo_sqlite, pcntl, soap, sockets, zip
 - **Performance**: opcache, redis
 - **Observability**: opentelemetry
-- **Swoole**: swoole (variante específica)
 
 ### Ferramentas Incluídas
 - **Composer** - Gerenciador de dependências PHP
@@ -151,9 +142,6 @@ Todos os Dockerfiles usam `PHP_VERSION` como argumento, permitindo:
 
 | Variante | Startup Time | Memory Usage | Request/sec |
 |----------|--------------|--------------|-------------|
-| FPM (PHP-FPM) | ~2s | 50MB | 1,000 |
-| Swoole | ~3s | 80MB | 5,000+ |
-| Nginx | ~3s | 70MB | 2,000 |
 | FrankenPHP | ~2s | 60MB | 3,000 |
 
 *Benchmarks executados em ambiente de teste padrão com aplicação Laravel simples.*
