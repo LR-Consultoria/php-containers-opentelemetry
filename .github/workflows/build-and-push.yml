@@ -67,11 +67,12 @@ jobs:
         # Convert repository owner to lowercase for Docker compatibility
         REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
-        if [ "${{ matrix.variant }}" = "fpm" ]; then
-          echo "name=php-fpm" >> $GITHUB_OUTPUT
-        else
-          echo "name=php-${{ matrix.variant }}" >> $GITHUB_OUTPUT
-        fi
+        IMAGE_NAME_VAR="php-${{ matrix.variant }}"
+        echo "name=${IMAGE_NAME_VAR}" >> $GITHUB_OUTPUT
+        
+        # Extract architecture from platform (e.g., linux/amd64 -> amd64)
+        ARCH=$(echo "${{ matrix.platforms }}" | cut -d'/' -f2)
+        echo "arch=${ARCH}" >> $GITHUB_OUTPUT
 
     - name: Extract metadata
       id: meta
@@ -83,8 +84,8 @@ jobs:
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=${{ matrix.php-version }}-alpine
-          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=${{ matrix.php-version }}-alpine-${{ steps.image-name.outputs.arch }}
+          type=raw,value=latest-${{ steps.image-name.outputs.arch }},enable={{is_default_branch}}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -95,9 +96,7 @@ jobs:
         build-args: |
           PHP_VERSION=${{ matrix.php-version }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: |
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-arm64
+        tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }}
         cache-to: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }},mode=max
@@ -187,9 +186,15 @@ jobs:
         ls -la scripts/
 
     - name: Run Trivy vulnerability scanner
+      id: trivy-scan
+      run: |
+        REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        echo "image=${{ env.REGISTRY }}/${REPO_OWNER_LOWER}/php-${{ matrix.variant }}:8.4-alpine-amd64" >> $GITHUB_OUTPUT
+
+    - name: Execute Trivy scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/php-${{ matrix.variant }}:8.4-alpine
+        image-ref: ${{ steps.trivy-scan.outputs.image }}
         format: 'sarif'
         output: 'trivy-results.sarif'
 
