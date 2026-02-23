@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3', '8.4', '8.5']
         variant: ['frankenphp']
         platforms: ['linux/amd64', 'linux/arm64']
         #exclude:
@@ -107,7 +107,7 @@ jobs:
     if: github.event_name != 'pull_request' && success()
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3', '8.4', '8.5']
         variant: ['frankenphp']
       max-parallel: 2
     
