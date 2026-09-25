@@ -7,55 +7,47 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    # Build images monthly on the 1st at 2 AM UTC
+    # Weekly rebuild (Sundays, 02:00 UTC) to pick up Alpine security patches.
     - cron: '0 2 * * 0'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-matrix:
-    runs-on: ubuntu-latest
+    name: build ${{ matrix.variant }} ${{ matrix.php-version }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
+      max-parallel: 4
       matrix:
         php-version: ['8.2', '8.3', '8.4', '8.5']
         variant: ['frankenphp']
-        platforms: ['linux/amd64', 'linux/arm64']
-        #exclude:
-          # Exclude combinations that don't exist
-          #- php-version: '8.4'
-          #  variant: 'frankenphp'
-        #include:
-          # Add ARM64 for main variants only
-          #- php-version: '8.3'
-          #  variant: 'fpm'
-          #  platforms: 'linux/arm64'
-          #- php-version: '8.3'
-          #  variant: 'nginx'
-          #  platforms: 'linux/arm64'
-      fail-fast: false
-      max-parallel: 2
-    
+        arch: ['amd64', 'arm64']
+        include:
+          # Native runners per architecture: no QEMU emulation for arm64.
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+
     permissions:
       contents: read
       packages: write
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Make scripts executable
-      run: |
-        chmod +x scripts/*.sh
-        ls -la scripts/
+      uses: actions/checkout@v7
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Log in to Container Registry
       if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
@@ -66,176 +58,176 @@ jobs:
       run: |
         # Convert repository owner to lowercase for Docker compatibility
         REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
-        IMAGE_NAME_VAR="php-${{ matrix.variant }}"
-        echo "name=${IMAGE_NAME_VAR}" >> $GITHUB_OUTPUT
-        
-        # Extract architecture from platform (e.g., linux/amd64 -> amd64)
-        ARCH=$(echo "${{ matrix.platforms }}" | cut -d'/' -f2)
-        echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+        echo "repo_owner=${REPO_OWNER_LOWER}" >> "$GITHUB_OUTPUT"
+        echo "name=php-${{ matrix.variant }}" >> "$GITHUB_OUTPUT"
 
     - name: Extract metadata
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         images: ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}
+        # Every tag is architecture-scoped here; the create-manifests job
+        # combines the per-arch tags into the final multi-arch tags.
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=${{ matrix.php-version }}-alpine-${{ steps.image-name.outputs.arch }}
-          type=raw,value=latest-${{ steps.image-name.outputs.arch }},enable={{is_default_branch}}
+          type=raw,value=${{ matrix.php-version }}-alpine-${{ matrix.arch }}
+          type=raw,value=latest-${{ matrix.arch }},enable={{is_default_branch}}
 
     - name: Build and push Docker image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: ${{ matrix.variant }}/Dockerfile
-        platforms: ${{ matrix.platforms }}
+        platforms: ${{ matrix.platform }}
         build-args: |
           PHP_VERSION=${{ matrix.php-version }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }}
-        cache-to: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }},mode=max
+        cache-from: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }}-${{ matrix.arch }}
+        cache-to: type=gha,scope=${{ matrix.variant }}-${{ matrix.php-version }}-${{ matrix.arch }},mode=max
 
   create-manifests:
+    name: manifest ${{ matrix.variant }} ${{ matrix.php-version }}
     runs-on: ubuntu-latest
     needs: [build-matrix]
-    if: github.event_name != 'pull_request' && success()
+    # Run even if one architecture failed, then skip only the affected versions.
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
     strategy:
+      fail-fast: false
       matrix:
         php-version: ['8.2', '8.3', '8.4', '8.5']
         variant: ['frankenphp']
-      max-parallel: 2
-    
+
     permissions:
       contents: read
       packages: write
 
     steps:
     - name: Log in to Container Registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Set image name
       id: image-name
       run: |
         REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        echo "repo_owner=${REPO_OWNER_LOWER}" >> $GITHUB_OUTPUT
-        if [ "${{ matrix.variant }}" = "fpm" ]; then
-          echo "name=php-fpm" >> $GITHUB_OUTPUT
-        else
-          echo "name=php-${{ matrix.variant }}" >> $GITHUB_OUTPUT
-        fi
+        echo "repo_owner=${REPO_OWNER_LOWER}" >> "$GITHUB_OUTPUT"
+        echo "name=php-${{ matrix.variant }}" >> "$GITHUB_OUTPUT"
 
-    - name: Create and push multi-arch manifest
+    - name: Create and push multi-arch manifests
+      env:
+        IMAGE: ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}
+        VERSION: ${{ matrix.php-version }}
       run: |
-        # Create multi-arch manifest
-        docker buildx imagetools create \
-          -t ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine \
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64 \
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-arm64
+        set -euo pipefail
 
-        # Create version without alpine suffix
-        docker buildx imagetools create \
-          -t ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }} \
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64 \
-          ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-arm64
+        AMD64="${IMAGE}:${VERSION}-alpine-amd64"
+        ARM64="${IMAGE}:${VERSION}-alpine-arm64"
 
-        # Create latest tag
-        if [ "${{ matrix.php-version }}" = "8.4" ]; then
-          docker buildx imagetools create \
-            -t ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:latest \
-            ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-amd64 \
-            ${{ env.REGISTRY }}/${{ steps.image-name.outputs.repo_owner }}/${{ steps.image-name.outputs.name }}:${{ matrix.php-version }}-alpine-arm64
+        missing=0
+        for ref in "$AMD64" "$ARM64"; do
+          if ! docker buildx imagetools inspect "$ref" >/dev/null 2>&1; then
+            echo "::warning::Missing arch image ${ref}, skipping manifests for PHP ${VERSION}"
+            missing=1
+          fi
+        done
+        [ "$missing" = "0" ] || exit 0
+
+        # Multi-arch tag with and without the "-alpine" suffix.
+        docker buildx imagetools create -t "${IMAGE}:${VERSION}-alpine" "$AMD64" "$ARM64"
+        docker buildx imagetools create -t "${IMAGE}:${VERSION}" "$AMD64" "$ARM64"
+
+        # "latest" tracks the current recommended version, only on main.
+        if [ "$VERSION" = "8.4" ] && [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+          docker buildx imagetools create -t "${IMAGE}:latest" "$AMD64" "$ARM64"
         fi
-
 
   security-scan:
+    name: trivy ${{ matrix.variant }} ${{ matrix.php-version }}
     runs-on: ubuntu-latest
-    needs: build-matrix
-    if: github.event_name != 'pull_request' && success()
+    needs: [build-matrix]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
     strategy:
+      fail-fast: false
       matrix:
+        php-version: ['8.2', '8.3', '8.4', '8.5']
         variant: ['frankenphp']
-    
+
     permissions:
       contents: read
-      packages: write
+      packages: read
+      security-events: write
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Make scripts executable
-      run: |
-        chmod +x scripts/*.sh
-        ls -la scripts/
-
-    - name: Run Trivy vulnerability scanner
-      id: trivy-scan
+    - name: Set image reference
+      id: image
       run: |
         REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        echo "image=${{ env.REGISTRY }}/${REPO_OWNER_LOWER}/php-${{ matrix.variant }}:8.4-alpine-amd64" >> $GITHUB_OUTPUT
+        echo "ref=${REGISTRY}/${REPO_OWNER_LOWER}/php-${{ matrix.variant }}:${{ matrix.php-version }}-alpine-amd64" >> "$GITHUB_OUTPUT"
 
-    - name: Execute Trivy scan
-      uses: aquasecurity/trivy-action@master
+    - name: Run Trivy (SARIF report)
+      uses: aquasecurity/trivy-action@0.36.0
       with:
-        image-ref: ${{ steps.trivy-scan.outputs.image }}
+        image-ref: ${{ steps.image.outputs.ref }}
         format: 'sarif'
-        output: 'trivy-results.sarif'
+        output: 'trivy-${{ matrix.php-version }}.sarif'
+        severity: 'HIGH,CRITICAL'
+        exit-code: '0'
 
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
-        sarif_file: 'trivy-results.sarif'
+        sarif_file: 'trivy-${{ matrix.php-version }}.sarif'
 
-  update-readme:
+    - name: Fail on unfixed HIGH/CRITICAL
+      uses: aquasecurity/trivy-action@0.36.0
+      with:
+        image-ref: ${{ steps.image.outputs.ref }}
+        severity: 'HIGH,CRITICAL'
+        ignore-unfixed: true
+        exit-code: '1'
+
+  smoke-test:
+    name: smoke ${{ matrix.variant }} ${{ matrix.php-version }}
     runs-on: ubuntu-latest
-    needs: [build-matrix, create-manifests]
-    if: github.event_name != 'pull_request' && success()
-    
+    needs: [create-manifests]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.3', '8.4', '8.5']
+        variant: ['frankenphp']
+
     permissions:
-      contents: write
+      contents: read
       packages: read
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Make scripts executable
+      run: chmod +x scripts/*.sh
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v4
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Smoke test published image
+      env:
+        REGISTRY: ${{ env.REGISTRY }}/${{ github.repository_owner }}
       run: |
-        chmod +x scripts/*.sh
-        ls -la scripts/
-
-    - name: Update README with latest image info
-      run: |
-        # Update README with latest image information
-        echo "Updating README with latest image information..."
-        # Add any README update logic here if needed
-
-
-  cleanup:
-    runs-on: ubuntu-latest
-    needs: [build-matrix, create-manifests, security-scan, update-readme]
-    if: always()
-    
-    permissions:
-      packages: write
-
-    steps:
-    - name: Cleanup old images
-      run: |
-        # Cleanup old images from registry
-        echo "Cleaning up old images..."
-        # Add cleanup logic here if needed
+        # The registry owner must be lowercase; normalise it here too.
+        REGISTRY=$(echo "$REGISTRY" | tr '[:upper:]' '[:lower:]')
+        export REGISTRY
+        ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine

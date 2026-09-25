@@ -1,0 +1,15 @@
+.git
+.gitignore
+.gitattributes
+.github
+.idea
+.vscode
+*.md
+docs
+examples
+scripts
+Makefile
+demo.sh
+docker-compose.dev.yml
+test-app
+logs
