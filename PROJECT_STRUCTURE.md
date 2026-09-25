@@ -1,277 +1,154 @@
 # Estrutura do Projeto PHP Docker
 
-Este documento descreve a estrutura completa do projeto e como cada componente funciona.
+Este documento descreve a estrutura do projeto e como cada componente funciona.
 
 ## 📁 Estrutura de Diretórios
 
 ```
 php-docker/
-├── .github/                    # GitHub Actions e automação
+├── .github/
 │   └── workflows/
-│       └── build-and-push.yml  # CI/CD pipeline principal
-├── swoole/                     # Variantes com Swoole
-│   └── Dockerfile              # Dockerfile parametrizado
-├── frankenphp/                 # Variantes com FrankenPHP
-│   └── Dockerfile              # Dockerfile parametrizado
-├── configs/                    # Configurações compartilhadas
-│   ├── php-production.ini      # Config PHP produção
-│   ├── php-swoole.ini         # Config PHP Swoole
-│   ├── php-franken.ini        # Config PHP FrankenPHP
-│   ├── supervisord.conf       # Config Supervisor
-│   ├── Caddyfile              # Config Caddy/FrankenPHP
-│   └── entrypoint.sh          # Script de inicialização
+│       └── build-and-push.yml  # Pipeline principal (build, manifest, scan, smoke)
+├── frankenphp/
+│   └── Dockerfile              # Dockerfile parametrizado por PHP_VERSION
+├── configs/                    # Configurações compartilhadas (copiadas na imagem)
+│   ├── php-franken.ini         # Config PHP para FrankenPHP
+│   ├── Caddyfile               # Config Caddy/FrankenPHP (health, headers, PHP)
+│   └── entrypoint.sh           # Entrypoint (permissões + modo local)
 ├── scripts/                    # Scripts de automação
-│   ├── build.sh               # Build imagem específica
-│   ├── build-all.sh           # Build todas as imagens
-│   ├── push-all.sh            # Push todas as imagens
-│   └── test.sh                # Teste de imagens
-├── examples/                   # Exemplos docker-compose
-│   ├── laravel-base.yml       # Setup base
-│   ├── laravel-swoole.yml     # Setup Swoole
-│   ├── laravel-frankenphp.yml # Setup FrankenPHP
-│   ├── env.example            # Variáveis exemplo
-│   └── README.md              # Documentação exemplos
+│   ├── build.sh                # Build de uma imagem
+│   ├── build-all.sh            # Build de todas
+│   ├── push-all.sh             # Push de todas
+│   └── test.sh                 # Smoke test de uma imagem
+├── examples/                   # Exemplos de docker-compose
+│   ├── laravel-frankenphp.yml  # Setup FrankenPHP
+│   ├── env.example             # Variáveis de exemplo
+│   └── README.md               # Documentação dos exemplos
+├── docs/runbooks/              # Runbooks operacionais
 ├── Makefile                    # Comandos de automação
-├── docker-compose.dev.yml     # Compose para testes locais
-├── README.md                   # Documentação principal
-├── CONTRIBUTING.md             # Guidelines contribuição
-├── LICENSE                     # Licença MIT
-├── .gitignore                  # Arquivos ignorados
-└── PROJECT_STRUCTURE.md       # Este arquivo
+├── docker-compose.dev.yml      # Compose para testes locais
+├── .dockerignore
+├── README.md
+├── CONTRIBUTING.md
+├── LICENSE
+└── PROJECT_STRUCTURE.md        # Este arquivo
 ```
 
 ## 🐳 Imagens Construídas
 
 ### Convenção de Nomenclatura
-- Repositório: `ghcr.io/lrconsultoria/`
+- Repositório: `ghcr.io/lr-consultoria/`
 - Nome: `php-{variant}`
-- Tag: `{version}-alpine`
+- Tag por arquitetura: `{version}-alpine-{arch}` (ex.: `8.4-alpine-amd64`)
+- Tag multi-arch (manifest): `{version}-alpine`, `{version}`, `latest` (só 8.4)
 
 ### Arquitetura de Build Args
 Todos os Dockerfiles usam `PHP_VERSION` como argumento de build:
+
 ```dockerfile
 ARG PHP_VERSION=8.3
-FROM php:${PHP_VERSION}-fpm-alpine
+FROM dunglas/frankenphp:1-php${PHP_VERSION}-alpine
 ```
 
 Isso permite:
-- **Manutenção simplificada**: Um Dockerfile por variante
-- **Flexibilidade**: Construir qualquer versão PHP suportada
-- **Consistência**: Mesmo comportamento entre versões
+- **Manutenção simplificada**: um Dockerfile por variante
+- **Flexibilidade**: construir qualquer versão PHP suportada (8.2–8.5)
+- **Consistência**: mesmo comportamento entre versões
 
-### Lista Completa de Imagens
+### Lista de Imagens
 
-| Imagem | Tag | Descrição |
-|--------|-----|-----------|
-| `php-swoole` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine`, `8.5-alpine` | PHP + Swoole |
-| `php-frankenphp` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine`, `8.5-alpine` | FrankenPHP |
+| Imagem | Tags | Descrição |
+|--------|------|-----------|
+| `php-frankenphp` | `8.2-alpine` … `8.5-alpine` | FrankenPHP + OpenTelemetry + gRPC |
+
+> O contexto de build é sempre a raiz do repositório (o Dockerfile copia `configs/`).
 
 ## ⚙️ Configurações
 
-### PHP Extensions Incluídas
-- **Core**: bcmath, calendar, ctype, curl, dom, exif, fileinfo, filter, ftp, gd, gettext, hash, iconv, json, libxml, mbstring, mysqli, openssl, pcre, PDO, pdo_mysql, pdo_pgsql, pdo_sqlite, pcntl, soap, sockets, zip
-- **Performance**: opcache, redis
-- **Observabilidade**: opentelemetry
-- **Swoole**: swoole (apenas nas variantes swoole)
+### Extensões PHP Incluídas
+- **Da base** (`dunglas/frankenphp`): ctype, curl, dom, fileinfo, filter, json, libxml,
+  mbstring, openssl, PDO, pdo_sqlite, pcre, Phar, posix, session, SimpleXML, sodium,
+  sqlite3, tokenizer, xml, xmlreader, xmlwriter, zlib; opcache habilitado.
+- **Instaladas pelo Dockerfile**: opentelemetry, grpc.
+
+Extensões adicionais (`redis`, `pdo_mysql`/`pdo_pgsql`, `zip`, `intl`, `bcmath`,
+`memcached`, …) devem ser instaladas no Dockerfile do app consumidor
+(via `install-php-extensions`, já presente na imagem), não na base.
 
 ### Ferramentas
-- Composer (latest)
-- Node.js + NPM
-- Git
-- Curl
-- MySQL/PostgreSQL clients
+`install-php-extensions` está disponível na imagem. Composer/Node/Git/clientes de banco
+dependem da base upstream e podem não estar presentes.
 
 ### Portas Expostas
-- **Swoole**: 8000 (HTTP)
-- **FrankenPHP**: 80, 443 (HTTP/HTTPS)
+- **FrankenPHP**: 80, 443 (e 443/udp)
 
 ## 🛠 Scripts de Automação
 
-### build.sh
-Constrói uma imagem específica usando argumentos de build.
 ```bash
-./scripts/build.sh <version> <variant> [tag_suffix]
-```
-
-**Exemplo de comando gerado:**
-```bash
-docker build --build-arg PHP_VERSION=8.3 -t ghcr.io/lrconsultoria/php-fpm:8.3-alpine -f fpm/Dockerfile .
-```
-
-### build-all.sh
-Constrói todas as imagens.
-```bash
+./scripts/build.sh <version> <variant> [tag_suffix]   # ex.: ./scripts/build.sh 8.4 frankenphp
 ./scripts/build-all.sh [tag_suffix]
-```
-
-### push-all.sh
-Envia todas as imagens para o registry.
-```bash
 ./scripts/push-all.sh [tag_suffix]
-```
-
-### test.sh
-Testa uma imagem específica.
-```bash
-./scripts/test.sh <version> <variant> [tag_suffix]
+./scripts/test.sh <version> <variant> [tag_suffix]    # smoke test
 ```
 
 ## 🚀 Makefile Targets
 
-### Build
-- `make build VERSION=8.3 VARIANT=swoole` - Build específico
-- `make build-all` - Build todas
-- `make build-matrix` - Build multi-platform
-
-### Test
-- `make test VERSION=8.3 VARIANT=swoole` - Teste específico
-- `make test-all` - Teste todas
-
-### Push
-- `make push VERSION=8.3 VARIANT=swoole` - Push específico
-- `make push-all` - Push todas
-
-### Desenvolvimento
-- `make dev-setup` - Setup ambiente
-- `make dev-up` - Inicia ambiente
-- `make dev-down` - Para ambiente
-
-### Utilitários
-- `make clean` - Limpeza Docker
-- `make clean-images` - Remove imagens
-- `make list-images` - Lista imagens
+- `make build VERSION=8.4 VARIANT=frankenphp`
+- `make build-all` / `make build-matrix`
+- `make test VERSION=8.4 VARIANT=frankenphp` / `make test-all`
+- `make push` / `make push-all`
+- `make dev-setup` / `make dev-up` / `make dev-down`
+- `make clean` / `make clean-images` / `make list-images`
 
 ## 🔄 CI/CD Pipeline
 
-### GitHub Actions
-O pipeline automatizado (`build-and-push.yml`):
+O workflow `.github/workflows/build-and-push.yml`:
 
-1. **Triggers**:
-   - Push para `main` e `develop`
-   - Tags `v*`
-   - Pull requests
-   - Schedule mensal
-
-2. **Matrix Build**:
-   - 4 versões PHP × 2 variantes = 8 imagens
-   - Multi-platform (AMD64/ARM64)
-   - Builds paralelos
-
-3. **Steps**:
-   - Checkout código
-   - Setup Docker Buildx
-   - Login no registry
-   - Build e push imagens
-   - Teste de imagens
-   - Security scan (Trivy)
-
-4. **Outputs**:
-   - Imagens no GitHub Container Registry
-   - Security reports
-   - Test results
-
-### Security Scanning
-- Trivy vulnerability scanner
-- Automated dependency updates
-- Security headers validation
+1. **Triggers**: push em `main`, tags `v*`, PRs para `main`, cron semanal, `workflow_dispatch`.
+2. **`build-matrix`**: 4 versões PHP × 2 arquiteturas (runners nativos amd64 e arm64,
+   sem emulação QEMU). Em PRs apenas constrói; fora de PRs publica as tags por arch.
+3. **`create-manifests`**: combina as tags `-amd64`/`-arm64` em `{version}-alpine`,
+   `{version}` e `latest` (8.4, só na `main`). Roda mesmo que uma arquitetura falhe e
+   pula apenas a versão afetada.
+4. **`security-scan`**: Trivy por versão; publica SARIF e **falha em HIGH/CRITICAL
+   não corrigíveis** (`ignore-unfixed`).
+5. **`smoke-test`**: roda `scripts/test.sh` na imagem publicada (php -v, opentelemetry,
+   grpc, frankenphp, extensões essenciais).
 
 ## 📋 Variáveis de Ambiente
 
 ### Build Time
-- `REGISTRY` - Registry Docker (default: ghcr.io/lrconsultoria)
-- `NO_CACHE` - Disable build cache
-- `PUSH` - Auto push após build
-- `BUILDX` - Use buildx para multi-platform
+- `REGISTRY` — registry Docker (default: `ghcr.io/lr-consultoria`)
+- `NO_CACHE` — desabilita cache de build
+- `PUSH` — push após o build
+- `BUILDX` — usa buildx para multi-plataforma
 
 ### Runtime
-- `APP_ENV` - Ambiente da aplicação
-- `APP_DEBUG` - Debug mode
-- `DB_HOST`, `DB_DATABASE`, etc. - Configurações banco
-- `REDIS_HOST` - Host Redis
-- `OTEL_*` - Configurações OpenTelemetry
+- `APP_ENV` — ambiente da aplicação (`local` liga display_errors/validate_timestamps)
+- `APP_DEBUG`, `DB_*`, `REDIS_HOST`
+- `OTEL_*` — configurações OpenTelemetry
 
-## 🔍 Health Checks
+## 🔍 Health Check
 
-Todas as imagens incluem health checks:
-
-- **Swoole**: HTTP GET `/health`
-- **FrankenPHP**: HTTP GET `/health`
-
-## 📊 Monitoramento
-
-### Logs
-- Aplicação: `/proc/self/fd/2` (stderr)
-- Supervisor: `/var/log/supervisor/`
-
-### Metrics
-- FrankenPHP: Built-in Caddy metrics
-- Swoole: Custom metrics endpoints
-- OpenTelemetry: Traces e métricas automáticas
+Todas as imagens incluem health check em `GET /health` (respondido pelo Caddy).
 
 ## 🛡 Segurança
 
-### Configurações
-- User não-root (www-data)
-- Minimal attack surface
-- Security headers
-- No sensitive data in images
-
-### Scanning
-- Dependency scanning
-- Regular security updates
+- Usuário não-root (`www-data`, UID/GID 1000)
+- `apk upgrade` no build para absorver patches do Alpine
+- Scan Trivy no CI com gate de HIGH/CRITICAL não corrigíveis
+- Runbook: [`docs/runbooks/vulnerabilidades-trivy.md`](docs/runbooks/vulnerabilidades-trivy.md)
 
 ## 🔄 Workflow de Desenvolvimento
 
-### 1. Desenvolvimento Local
 ```bash
-# Setup
-make dev-setup
-
-# Build e teste
-make build VERSION=8.3 VARIANT=swoole
-make test VERSION=8.3 VARIANT=swoole
+# Build e smoke test local
+make build VERSION=8.4 VARIANT=frankenphp
+make test  VERSION=8.4 VARIANT=frankenphp
 ```
 
-### 2. Contribuição
-```bash
-# Fork e clone
-git clone https://github.com/SEU_USER/php-docker.git
-
-# Branch
-git checkout -b feature/nova-feature
-
-# Desenvolver e testar
-make build-all
-make test-all
-
-# Commit e push
-git commit -am "feat: nova feature"
-git push origin feature/nova-feature
-```
-
-### 3. CI/CD
-- Pull request triggers build
-- Automated testing
-- Security scanning
-- Manual review
-- Merge to main triggers release
-
-## 📈 Roadmap
-
-### Futuro
-- [ ] More PHP extensions
-- [ ] Performance optimizations
-- [ ] Better monitoring
-- [ ] Kubernetes manifests
-- [ ] Helm charts
-
-### Maintenance
-- Monthly dependency updates
-- Security patches
-- Performance monitoring
-- Community feedback integration
+Contribuições seguem o [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-**Estrutura criada em**: 2024-12-19
-**Última atualização**: 2024-12-19
+**Última atualização**: 2026-09-25

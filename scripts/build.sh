@@ -9,7 +9,7 @@ set -e
 PHP_VERSION=""
 VARIANT=""
 TAG_SUFFIX=""
-REGISTRY="ghcr.io/lrconsultoria"
+REGISTRY="${REGISTRY:-ghcr.io/lr-consultoria}"
 BUILD_ARGS=""
 
 # Help function
@@ -21,17 +21,15 @@ Build Docker images for PHP projects.
 
 Arguments:
   version       PHP version (8.2, 8.3, 8.4, 8.5)
-  variant       Image variant (swoole, frankenphp)
+  variant       Image variant (frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
-  $0 8.3 swoole
   $0 8.3 frankenphp
-  $0 8.3 swoole dev
   $0 8.4 frankenphp latest
 
 Environment Variables:
-  REGISTRY      Docker registry (default: ghcr.io/lrconsultoria)
+  REGISTRY      Docker registry (default: ghcr.io/lr-consultoria)
   NO_CACHE      Set to 1 to disable build cache
   PUSH          Set to 1 to push image after build
   BUILDX        Set to 1 to use docker buildx for multi-platform builds
@@ -62,10 +60,10 @@ esac
 
 # Validate variant
 case $VARIANT in
-    swoole|frankenphp)
+    frankenphp)
         ;;
     *)
-        echo "Error: Invalid variant '$VARIANT'. Supported: swoole, frankenphp"
+        echo "Error: Invalid variant '$VARIANT'. Supported: frankenphp"
         exit 1
         ;;
 esac
@@ -105,12 +103,10 @@ echo "Command: $BUILD_CMD"
 echo ""
 
 # Execute build
-eval $BUILD_CMD
-
-if [ $? -eq 0 ]; then
+if eval "$BUILD_CMD"; then
     echo ""
     echo "✅ Successfully built: $FULL_IMAGE_NAME"
-    
+
     # Push if requested
     if [ "$PUSH" = "1" ]; then
         echo "🚀 Pushing image to registry..."
@@ -122,7 +118,7 @@ if [ $? -eq 0 ]; then
             echo "✅ Successfully pushed: $FULL_IMAGE_NAME"
         fi
     fi
-    
+
     # Show image info
     if [ "$BUILDX" != "1" ]; then
         echo ""

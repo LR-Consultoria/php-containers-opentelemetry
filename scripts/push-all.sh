@@ -7,9 +7,9 @@ set -e
 
 # Configuration
 PHP_VERSIONS=("8.2" "8.3" "8.4" "8.5")
-VARIANTS=("swoole" "frankenphp")
+VARIANTS=("frankenphp")
 TAG_SUFFIX=${1:-alpine}
-REGISTRY=${REGISTRY:-ghcr.io/lrconsultoria}
+REGISTRY=${REGISTRY:-ghcr.io/lr-consultoria}
 
 # Colors for output
 RED='\033[0;31m'

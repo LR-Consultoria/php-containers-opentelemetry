@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Keep GitHub Actions up to date (also avoids Node.js runtime deprecations).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # Track the FrankenPHP upstream base image used by frankenphp/Dockerfile.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(docker)"

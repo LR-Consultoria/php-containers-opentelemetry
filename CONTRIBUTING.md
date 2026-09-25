@@ -18,8 +18,9 @@ cd php-docker
 # Instale as dependências necessárias
 make dev-setup
 
-# Teste o ambiente
-make test VERSION=8.3 VARIANT=fpm
+# Teste o ambiente (requer a imagem já construída)
+make build VERSION=8.4 VARIANT=frankenphp
+make test VERSION=8.4 VARIANT=frankenphp
 ```
 
 ### 3. Faça suas Mudanças
@@ -32,14 +33,12 @@ make test VERSION=8.3 VARIANT=fpm
 
 ```bash
 # Teste uma imagem específica
-make test VERSION=8.3 VARIANT=swoole
+make build VERSION=8.4 VARIANT=frankenphp
+make test VERSION=8.4 VARIANT=frankenphp
 
 # Teste todas as imagens
+make build-all
 make test-all
-
-# Build e teste
-make build VERSION=8.3 VARIANT=swoole
-make test VERSION=8.3 VARIANT=swoole
 ```
 
 ### 5. Commit e Push
@@ -124,7 +123,7 @@ Antes de abrir um Pull Request, verifique:
 
 ```bash
 # Build específico
-make build VERSION=8.3 VARIANT=fpm
+make build VERSION=8.4 VARIANT=frankenphp
 
 # Build all
 make build-all
@@ -144,13 +143,12 @@ make test-all
 
 ```
 php-docker/
-├── swoole/            # Variantes Swoole
-├── frankenphp/        # Variantes FrankenPHP
+├── frankenphp/        # Dockerfile da variante FrankenPHP
 ├── configs/           # Configurações compartilhadas
 ├── scripts/           # Scripts de build e teste
 ├── examples/          # Exemplos docker-compose
-├── .github/           # GitHub Actions
-└── docs/              # Documentação adicional
+├── docs/runbooks/     # Runbooks operacionais
+└── .github/           # GitHub Actions
 ```
 
 ## 🐛 Reportando Bugs
@@ -178,7 +176,7 @@ O que deveria acontecer.
 **Ambiente**
 - OS: [ex: Ubuntu 20.04]
 - Docker: [ex: 24.0.6]
-- Versão da Imagem: [ex: php-swoole:8.3-alpine]
+- Versão da Imagem: [ex: php-frankenphp:8.4-alpine]
 
 **Logs**
 ```
@@ -241,7 +239,7 @@ Use conventional commits:
 
 ```bash
 feat: adiciona suporte para PHP 8.4
-fix: corrige configuração nginx para grandes uploads
+fix: corrige Caddyfile para grandes uploads
 docs: atualiza README com novos exemplos
 chore: atualiza dependências do build
 ```
@@ -256,9 +254,10 @@ Seguimos [Semantic Versioning](https://semver.org/):
 
 ### Tags de Imagem
 
-- `8.3-alpine` - Versão específica
-- `8.3` - Alias para alpine
-- `latest` - Versão mais recente estável
+- `8.4-alpine` - Multi-arch (amd64 + arm64)
+- `8.4-alpine-amd64` / `8.4-alpine-arm64` - Imagens por arquitetura
+- `8.4` - Alias de `8.4-alpine`
+- `latest` - Versão recomendada atual (acompanha a 8.4)
 
 ## 🤝 Código de Conduta
 

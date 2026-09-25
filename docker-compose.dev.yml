@@ -1,61 +1,11 @@
-version: '3.8'
-
-# Docker Compose para desenvolvimento das imagens Docker
-# Este arquivo é usado para testar localmente as imagens construídas
+# Local Compose file used to exercise the built images.
+# Build the image first, e.g.: make build VERSION=8.4 VARIANT=frankenphp
+# Then: docker compose -f docker-compose.dev.yml --profile frankenphp up -d
 
 services:
-  # Test PHP FPM
-  php-fpm-test:
-    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
-    container_name: test-php-fpm
-    working_dir: /var/www
-    volumes:
-      - ./test-app:/var/www
-    environment:
-      APP_ENV: local
-      APP_DEBUG: true
-    networks:
-      - test-network
-    profiles:
-      - fpm
-
-  # Test PHP Swoole
-  php-swoole-test:
-    image: ghcr.io/lrconsultoria/php-swoole:8.3-alpine
-    container_name: test-php-swoole
-    working_dir: /var/www
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./test-app:/var/www
-    environment:
-      APP_ENV: local
-      APP_DEBUG: true
-    networks:
-      - test-network
-    profiles:
-      - swoole
-
-  # Test PHP Nginx
-  php-nginx-test:
-    image: ghcr.io/lrconsultoria/php-nginx:8.3-alpine
-    container_name: test-php-nginx
-    working_dir: /var/www
-    ports:
-      - "8080:80"
-    volumes:
-      - ./test-app:/var/www
-    environment:
-      APP_ENV: local
-      APP_DEBUG: true
-    networks:
-      - test-network
-    profiles:
-      - nginx
-
   # Test PHP FrankenPHP
   php-frankenphp-test:
-    image: ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
+    image: ghcr.io/lr-consultoria/php-frankenphp:8.3-alpine
     container_name: test-php-frankenphp
     working_dir: /var/www
     ports:
@@ -64,7 +14,7 @@ services:
       - ./test-app:/var/www
     environment:
       APP_ENV: local
-      APP_DEBUG: true
+      APP_DEBUG: "true"
     networks:
       - test-network
     profiles:
@@ -96,23 +46,6 @@ services:
       - test-network
     profiles:
       - redis
-
-  # All services utility
-  test-all:
-    image: alpine:latest
-    container_name: test-runner
-    depends_on:
-      - php-fpm-test
-      - php-swoole-test
-      - php-nginx-test
-      - php-frankenphp-test
-      - test-database
-      - test-redis
-    command: echo "All test services are running"
-    networks:
-      - test-network
-    profiles:
-      - all
 
 volumes:
   test_db_data:

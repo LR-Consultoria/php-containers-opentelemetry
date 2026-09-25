@@ -1,10 +1,12 @@
 # Makefile for PHP Docker Images
 
 # Configuration
-REGISTRY ?= ghcr.io/lrconsultoria
+REGISTRY ?= ghcr.io/lr-consultoria
 TAG_SUFFIX ?= alpine
 PHP_VERSIONS := 8.2 8.3 8.4 8.5
-VARIANTS := swoole frankenphp
+# Only "frankenphp" currently ships a Dockerfile. Add variants here as
+# <variant>/Dockerfile is (re)introduced.
+VARIANTS := frankenphp
 
 # Colors
 BLUE := \033[0;34m
@@ -13,7 +15,7 @@ YELLOW := \033[1;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-.PHONY: help build build-all push push-all test test-all clean
+.PHONY: help build build-all push push-all test test-all clean clean-images list-images build-matrix dev-setup dev-up dev-down ci-build ci-test ci-push
 
 help: ## Show this help message
 	@echo "$(BLUE)PHP Docker Images Makefile$(NC)"
@@ -21,10 +23,10 @@ help: ## Show this help message
 	@echo "$(YELLOW)Available commands:$(NC)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-build: ## Build specific image (usage: make build VERSION=8.3 VARIANT=swoole)
+build: ## Build specific image (usage: make build VERSION=8.3 VARIANT=frankenphp)
 	@if [ -z "$(VERSION)" ] || [ -z "$(VARIANT)" ]; then \
 		echo "$(RED)Error: VERSION and VARIANT are required$(NC)"; \
-		echo "Usage: make build VERSION=8.3 VARIANT=swoole"; \
+		echo "Usage: make build VERSION=8.3 VARIANT=frankenphp"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Building $(VARIANT) image for PHP $(VERSION)...$(NC)"
@@ -34,10 +36,10 @@ build-all: ## Build all images
 	@echo "$(BLUE)Building all PHP Docker images...$(NC)"
 	@./scripts/build-all.sh $(TAG_SUFFIX)
 
-push: ## Push specific image (usage: make push VERSION=8.3 VARIANT=swoole)
+push: ## Push specific image (usage: make push VERSION=8.3 VARIANT=frankenphp)
 	@if [ -z "$(VERSION)" ] || [ -z "$(VARIANT)" ]; then \
 		echo "$(RED)Error: VERSION and VARIANT are required$(NC)"; \
-		echo "Usage: make push VERSION=8.3 VARIANT=swoole"; \
+		echo "Usage: make push VERSION=8.3 VARIANT=frankenphp"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Pushing $(VARIANT) image for PHP $(VERSION)...$(NC)"
@@ -47,10 +49,10 @@ push-all: ## Push all built images
 	@echo "$(BLUE)Pushing all PHP Docker images...$(NC)"
 	@./scripts/push-all.sh $(TAG_SUFFIX)
 
-test: ## Test specific image (usage: make test VERSION=8.3 VARIANT=swoole)
+test: ## Test specific image (usage: make test VERSION=8.3 VARIANT=frankenphp)
 	@if [ -z "$(VERSION)" ] || [ -z "$(VARIANT)" ]; then \
 		echo "$(RED)Error: VERSION and VARIANT are required$(NC)"; \
-		echo "Usage: make test VERSION=8.3 VARIANT=swoole"; \
+		echo "Usage: make test VERSION=8.3 VARIANT=frankenphp"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Testing $(VARIANT) image for PHP $(VERSION)...$(NC)"
@@ -94,17 +96,17 @@ build-matrix: ## Build images using buildx for multi-platform
 dev-setup: ## Setup development environment
 	@echo "$(BLUE)Setting up development environment...$(NC)"
 	@cp examples/env.example .env
-	@mkdir -p logs/nginx logs/supervisor
+	@mkdir -p logs
 	@echo "$(GREEN)Development environment ready!$(NC)"
 
 dev-up: ## Start development environment
 	@echo "$(BLUE)Starting development environment...$(NC)"
-	@docker-compose -f examples/laravel-base.yml up -d
+	@docker compose -f examples/laravel-frankenphp.yml up -d
 	@echo "$(GREEN)Development environment started!$(NC)"
 
 dev-down: ## Stop development environment
 	@echo "$(YELLOW)Stopping development environment...$(NC)"
-	@docker-compose -f examples/laravel-base.yml down
+	@docker compose -f examples/laravel-frankenphp.yml down
 	@echo "$(GREEN)Development environment stopped!$(NC)"
 
 # CI/CD targets

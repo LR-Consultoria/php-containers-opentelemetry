@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 PHP_VERSIONS=("8.2" "8.3" "8.4" "8.5")
-VARIANTS=("swoole" "frankenphp")
+VARIANTS=("frankenphp")
 TAG_SUFFIX=${1:-alpine}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_SCRIPT="$SCRIPT_DIR/build.sh"
