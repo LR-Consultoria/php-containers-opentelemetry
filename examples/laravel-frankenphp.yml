@@ -2,16 +2,17 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
+    image: ghcr.io/lr-consultoria/php-frankenphp:8.3-alpine
     container_name: laravel-franken
     working_dir: /var/www
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      # The image already ships a Caddyfile and php-franken.ini; override by
+      # mounting your own file here if needed, e.g.:
+      # - ./configs/php-franken-local.ini:/usr/local/etc/php/conf.d/php-franken-local.ini
       - ./src:/var/www
-      - ./configs/php-franken-local.ini:/usr/local/etc/php/conf.d/php-franken-local.ini
-      - ./configs/Caddyfile:/etc/caddy/Caddyfile
     environment:
       APP_ENV: local
       APP_DEBUG: true
@@ -24,7 +25,7 @@ services:
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
       # FrankenPHP specific
-      FRANKENPHP_CONFIG: /etc/caddy/Caddyfile
+      FRANKENPHP_CONFIG: /etc/frankenphp/Caddyfile
       SERVER_NAME: :80
     networks:
       - laravel
@@ -68,7 +69,7 @@ services:
 
   # Queue Worker
   queue:
-    image: ghcr.io/lrconsultoria/php-fpm:8.3-alpine
+    image: ghcr.io/lr-consultoria/php-frankenphp:8.3-alpine
     container_name: laravel-franken-queue
     working_dir: /var/www
     volumes:
