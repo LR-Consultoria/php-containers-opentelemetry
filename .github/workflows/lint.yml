@@ -1,0 +1,41 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+    - name: Run shellcheck
+      run: shellcheck scripts/*.sh
+
+  hadolint:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+    - name: Lint Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: frankenphp/Dockerfile
+        failure-threshold: error
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+    - name: Run actionlint
+      uses: raven-actions/actionlint@v2
