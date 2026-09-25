@@ -96,6 +96,8 @@ base atualizando os pacotes do SO.
 
 4. Fazer merge no `main` deste repositório — o workflow publica as imagens
    (`build-matrix` → `create-manifests`) e roda o `security-scan`.
+   **Atenção:** reabilitar o workflow antes, pois hoje ele está
+   `disabled_inactivity` (ver *Lacunas conhecidas*).
 
 ### Opção B — corrigir só no app consumidor (paliativo)
 
@@ -137,6 +139,9 @@ trivy image --severity HIGH,CRITICAL \
 
 ## Prevenção
 
+- **Reabilitar o workflow** (ver *Lacunas conhecidas*): hoje ele está
+  `disabled_inactivity`, então **nenhuma correção é publicada** enquanto isso não
+  for resolvido. Reabilitar faz parte da execução deste runbook.
 - **Rebuild periódico**: o workflow já tem `schedule` (`cron: '0 2 * * 0'`, hoje
   semanal). Garantir que a cadência seja suficiente para absorver patches do
   Alpine; alinhar o comentário do YAML ("monthly") com o cron real.
@@ -155,6 +160,13 @@ Quando não houver versão corrigida, documentar a decisão e o prazo de revisã
 
 ## Lacunas conhecidas
 
+- **Workflow desabilitado por inatividade** (bloqueador): o único workflow,
+  `Build and Push Docker Images`, está com estado `disabled_inactivity`
+  (desabilitado pelo GitHub após ~60 dias sem atividade de PR/issue; último run
+  em 2026-04-26, falho). Enquanto não for reabilitado — *Actions → Enable
+  workflow* ou `gh workflow enable build-and-push.yml` — **nenhuma imagem base é
+  reconstruída**, então nem o `apk upgrade` chega ao registry. Isto precisa ser
+  resolvido no início da execução, senão a correção não tem efeito.
 - O job `security-scan` deste repositório hoje é **informativo** (não falha o
   build) e escaneia apenas **`php-frankenphp:8.4-alpine-amd64`** (versão
   hardcoded). Não há gate por `HIGH`/`CRITICAL` na base, nem cobertura da `8.5`.
