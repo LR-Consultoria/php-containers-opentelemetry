@@ -139,14 +139,11 @@ trivy image --severity HIGH,CRITICAL \
 
 ## Prevenção
 
-- **Reabilitar o workflow** (ver *Lacunas conhecidas*): hoje ele está
-  `disabled_inactivity`, então **nenhuma correção é publicada** enquanto isso não
-  for resolvido. Reabilitar faz parte da execução deste runbook.
-- **Rebuild periódico**: o workflow já tem `schedule` (`cron: '0 2 * * 0'`, hoje
-  semanal). Garantir que a cadência seja suficiente para absorver patches do
-  Alpine; alinhar o comentário do YAML ("monthly") com o cron real.
-- **Base sempre atual**: manter o `dunglas/frankenphp` rastreado (dependabot
-  para docker, se aplicável).
+- **Rebuild periódico**: o workflow tem `schedule` semanal (`cron: '0 2 * * 0'`)
+  para absorver patches do Alpine. Confirmar que a cadência continua adequada.
+- **Base sempre atual**: o `dunglas/frankenphp` é rastreado pelo Dependabot
+  (ecossistema `docker` apontando para `/frankenphp`; ele **não** recursiona,
+  por isso o path precisa ser o diretório do Dockerfile).
 - **Diff de base**: ao subir PHP, validar com `trivy` antes de publicar.
 - **Alarme cedo**: manter o `Security Check` dos apps rodando diariamente.
 
@@ -158,18 +155,34 @@ Quando não houver versão corrigida, documentar a decisão e o prazo de revisã
   revisão; **não** mascarar em `.trivyignore` da base.
 - Registrar a justificativa na issue/PR correspondente.
 
+## Distinção importante: CVEs do SO vs. do binário Go do FrankenPHP
+
+O gate do `security-scan` (`--exit-code 1 --ignore-unfixed`) é escopado **apenas
+a pacotes de SO** (`vuln-type: os`), porque são os únicos que este repositório
+consegue corrigir (`apk upgrade`).
+
+O FrankenPHP é escrito em **Go**, e o binário embute dependências que o Trivy
+reporta como `library`. Em 2026-09-26 a imagem (FrankenPHP v1.12.7, a mais
+recente) apresentava 7 achados HIGH/CRITICAL **sem fix disponível**:
+
+| Biblioteca | IDs | Corrigido em |
+|---|---|---|
+| `github.com/getkin/kin-openapi` v0.140.0 | GHSA-r277-6w6q-xmqw (CRITICAL), CVE-2026-76905, CVE-2026-77354 | 0.141.0+ |
+| `golang.org/x/crypto` v0.54.0 | CVE-2026-56854 | 0.55.0 |
+| `google.golang.org/grpc` v1.81.1 | CVE-2026-84304, CVE-2026-84445, GHSA-hrxh-6v49-42gf | 1.82.1+ |
+
+Estes **não** são resolvíveis aqui: dependem de release do `dunglas/frankenphp`.
+Eles continuam visíveis via **SARIF** (aba *Security → Code scanning*); a
+remediação é aguardar/atualizar a tag base — ação viável apenas quando o
+upstream publicar uma versão corrigida.
+
+> Não adicione essas CVEs ao `.trivyignore` da base (ver *Exceções*); o SARIF já
+> é o canal de acompanhamento e o gate de SO permanece ativo.
+
 ## Lacunas conhecidas
 
-- **Workflow desabilitado por inatividade** (bloqueador): o único workflow,
-  `Build and Push Docker Images`, está com estado `disabled_inactivity`
-  (desabilitado pelo GitHub após ~60 dias sem atividade de PR/issue; último run
-  em 2026-04-26, falho). Enquanto não for reabilitado — *Actions → Enable
-  workflow* ou `gh workflow enable build-and-push.yml` — **nenhuma imagem base é
-  reconstruída**, então nem o `apk upgrade` chega ao registry. Isto precisa ser
-  resolvido no início da execução, senão a correção não tem efeito.
-- O job `security-scan` deste repositório hoje é **informativo** (não falha o
-  build) e escaneia apenas **`php-frankenphp:8.4-alpine-amd64`** (versão
-  hardcoded). Não há gate por `HIGH`/`CRITICAL` na base, nem cobertura da `8.5`.
-  Melhorias sugeridas (PR futuro): parametrizar a versão no scan, rodar
-  `--severity HIGH,CRITICAL --exit-code 1` como gate e escanear todas as
-  versões do matrix.
+- ~~Workflow `disabled_inactivity`~~ — **resolvido em 2026-09-25** (reabilitado);
+  hoje está `active` com builds arm64 nativos (sem QEMU).
+- ~~`security-scan` informativo / tag 8.4 hardcoded~~ — **resolvido**: o scan é
+  parametrizado por versão do matrix e há gate (`vuln-type: os`, HIGH/CRITICAL,
+  `ignore-unfixed`). A superfície Go do upstream é acompanhada pelo SARIF.
