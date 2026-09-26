@@ -172,7 +172,7 @@ jobs:
         echo "ref=${REGISTRY}/${REPO_OWNER_LOWER}/php-${{ matrix.variant }}:${{ matrix.php-version }}-alpine-amd64" >> "$GITHUB_OUTPUT"
 
     - name: Run Trivy (SARIF report)
-      uses: aquasecurity/trivy-action@0.36.0
+      uses: aquasecurity/trivy-action@v0.36.0
       with:
         image-ref: ${{ steps.image.outputs.ref }}
         format: 'sarif'
@@ -187,7 +187,7 @@ jobs:
         sarif_file: 'trivy-${{ matrix.php-version }}.sarif'
 
     - name: Fail on unfixed HIGH/CRITICAL
-      uses: aquasecurity/trivy-action@0.36.0
+      uses: aquasecurity/trivy-action@v0.36.0
       with:
         image-ref: ${{ steps.image.outputs.ref }}
         severity: 'HIGH,CRITICAL'
@@ -230,4 +230,6 @@ jobs:
         # The registry owner must be lowercase; normalise it here too.
         REGISTRY=$(echo "$REGISTRY" | tr '[:upper:]' '[:lower:]')
         export REGISTRY
+        # Ensure scripts/test.sh can execute even if the checkout lost the bit.
+        chmod +x scripts/test.sh
         ./scripts/test.sh ${{ matrix.php-version }} ${{ matrix.variant }} alpine
