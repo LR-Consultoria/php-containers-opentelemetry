@@ -1,210 +1,59 @@
 # Exemplos de Docker Compose
 
-Esta pasta contém exemplos de configurações Docker Compose para diferentes cenários de uso das imagens PHP.
+Exemplos de uso das imagens base em projetos Laravel.
 
 ## 📁 Arquivos Disponíveis
 
-### Configurações Principais
-- `laravel-base.yml` - Setup básico com Swoole
-- `laravel-swoole.yml` - Setup com Swoole para alta performance
-- `laravel-frankenphp.yml` - Setup com FrankenPHP para desenvolvimento moderno
-
-### Arquivos de Suporte
-- `env.example` - Variáveis de ambiente de exemplo
-- `nginx/` - Configurações Nginx personalizadas
-- `configs/` - Configurações PHP personalizadas
+- `laravel-frankenphp.yml` — setup completo (app FrankenPHP + MySQL + Redis +
+  queue + Soketi + MailHog + Adminer).
+- `env.example` — variáveis de ambiente de exemplo.
 
 ## 🚀 Como Usar
 
-### 1. Setup Básico (Swoole)
 ```bash
 # Copie e ajuste as variáveis
 cp examples/env.example .env
 
-# Inicie os serviços
-docker-compose -f examples/laravel-base.yml up -d
-
-# Acesse: http://localhost:8000
-```
-
-### 2. Setup com Swoole (Alta Performance)
-```bash
-# Configure as variáveis
-cp examples/env.example .env
-
-# Inicie com Swoole
-docker-compose -f examples/laravel-swoole.yml up -d
-
-# Acesse: http://localhost:8000
-```
-
-### 3. Setup com FrankenPHP (Moderno)
-```bash
-# Configure
-cp examples/env.example .env
-
-# Inicie com FrankenPHP
-docker-compose -f examples/laravel-frankenphp.yml up -d
+# Coloque o código Laravel em ./src e suba os serviços
+docker compose -f examples/laravel-frankenphp.yml up -d
 
 # Acesse: http://localhost
 ```
 
-## ⚙️ Configurações Personalizadas
+A imagem já traz o `Caddyfile` e o `php-franken.ini`. Para sobrescrever, monte seus
+arquivos, por exemplo:
 
-### PHP Configurations
-Crie arquivos de configuração PHP personalizados:
-
-```bash
-mkdir -p configs
-```
-
-**configs/php-local.ini:**
-```ini
-; Configurações para desenvolvimento
-display_errors = On
-error_reporting = E_ALL
-opcache.validate_timestamps = 1
-xdebug.mode = debug
-```
-
-**configs/php-production.ini:**
-```ini
-; Configurações para produção
-display_errors = Off
-error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT
-opcache.validate_timestamps = 0
-```
-
-### Nginx Configurations
-**nginx/swoole-proxy.conf:**
-```nginx
-upstream swoole {
-    server app:8000;
-}
-
-server {
-    listen 80;
-    server_name _;
-    
-    location / {
-        proxy_pass http://swoole;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-### Redis Configuration
-**configs/redis.conf:**
-```
-maxmemory 256mb
-maxmemory-policy allkeys-lru
-save 900 1
-save 300 10
-save 60 10000
+```yaml
+volumes:
+  - ./src:/var/www
+  - ./configs/php-franken-local.ini:/usr/local/etc/php/conf.d/php-franken-local.ini
+  - ./configs/Caddyfile:/etc/frankenphp/Caddyfile
 ```
 
 ## 🛠 Comandos Úteis
 
-### Laravel Commands
 ```bash
-# Migrate e seed
-docker-compose exec app php artisan migrate --seed
+# Laravel
+docker compose exec app php artisan migrate --seed
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan config:clear
 
-# Clear cache
-docker-compose exec app php artisan cache:clear
-docker-compose exec app php artisan config:clear
-docker-compose exec app php artisan route:clear
-
-# Generate key
-docker-compose exec app php artisan key:generate
-
-# Install dependencies
-docker-compose exec app composer install
-docker-compose exec app npm install && npm run build
+# Docker
+docker compose logs -f app
+docker compose exec app sh
 ```
 
-### Docker Commands
-```bash
-# Ver logs
-docker-compose logs -f app
+## 🔍 Health Check
 
-# Executar comandos
-docker-compose exec app bash
-
-# Rebuild specific service
-docker-compose build app
-
-# Scale queue workers
-docker-compose up -d --scale queue=3
-```
-
-## 🔍 Health Checks
-
-Todos os setups incluem health checks:
-
-- **Swoole**: `curl http://localhost:8000/health`
 - **FrankenPHP**: `curl http://localhost/health`
 
-## 📊 Monitoramento
-
-### Logs
-```bash
-# Aplicação
-docker-compose logs -f app
-
-# Database
-docker-compose logs -f database
-
-# Queue
-docker-compose logs -f queue
-```
-
-### Performance
-- **Swoole**: Monitor via Laravel Telescope ou custom endpoints
-- **FrankenPHP**: Built-in metrics via Caddy
-
-## 🛡 Segurança para Produção
-
-1. **Variáveis de Ambiente**:
-   - Use `.env` files seguros
-   - Não commite credenciais
-
-2. **SSL/TLS**:
-   - Configure certificados
-   - Use reverse proxy
-
-3. **Firewall**:
-   - Exponha apenas portas necessárias
-   - Use redes Docker isoladas
-
-4. **Backup**:
-   - Volumes persistentes
-   - Backup automático do banco
-
 ## 🐛 Troubleshooting
-
-### Problemas Comuns
 
 **Permission denied:**
 ```bash
 sudo chown -R $USER:$USER ./src
 ```
 
-**Port already in use:**
-```bash
-# Change ports in docker-compose.yml
-ports:
-  - "8080:80"  # Instead of "80:80"
-```
+**Porta em uso:** altere `ports:` no compose (ex.: `"8080:80"`).
 
-**Container won't start:**
-```bash
-# Check logs
-docker-compose logs app
-
-# Debug mode
-docker-compose run --rm app bash
-```
+**Container não sobe:** verifique os logs com `docker compose logs app`.

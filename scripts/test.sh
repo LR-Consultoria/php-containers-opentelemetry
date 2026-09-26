@@ -19,7 +19,7 @@ trap 'handle_error ${LINENO} "$BASH_COMMAND"' ERR
 PHP_VERSION=""
 VARIANT=""
 TAG_SUFFIX=""
-REGISTRY="ghcr.io/lrconsultoria"
+REGISTRY="${REGISTRY:-ghcr.io/lr-consultoria}"
 CONTAINER_NAME=""
 
 # Colors for output
@@ -38,15 +38,14 @@ Test Docker images for PHP projects.
 
 Arguments:
   version       PHP version (8.2, 8.3, 8.4, 8.5)
-  variant       Image variant (swoole, frankenphp)
+  variant       Image variant (frankenphp)
   tag_suffix    Optional tag suffix (default: alpine)
 
 Examples:
-  $0 8.3 swoole
   $0 8.3 frankenphp
 
 Environment Variables:
-  REGISTRY      Docker registry (default: ghcr.io/lrconsultoria)
+  REGISTRY      Docker registry (default: ghcr.io/lr-consultoria)
 
 EOF
 }
@@ -80,7 +79,7 @@ case $PHP_VERSION in
 esac
 
 case $VARIANT in
-    swoole|frankenphp) ;;
+    frankenphp) ;;
     *) echo "Error: Invalid variant '$VARIANT'"; exit 1 ;;
 esac
 
@@ -104,31 +103,20 @@ echo ""
 
 # Test 1: Check if image exists
 echo -e "${YELLOW}Test 1: Checking image availability...${NC}"
-echo "Looking for image: $FULL_IMAGE_NAME"
-echo "Available images:"
-docker images --format "{{.Repository}}:{{.Tag}}" | grep "$IMAGE_NAME" || echo "No images found with name: $IMAGE_NAME"
-
-# Try to find the image with a more flexible approach
-if docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "$FULL_IMAGE_NAME" >/dev/null 2>&1; then
+if docker image inspect "$FULL_IMAGE_NAME" >/dev/null 2>&1; then
     echo -e "${GREEN}✅ Image found locally${NC}"
-elif docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "$IMAGE_NAME:$TAG" >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Image found locally (partial match)${NC}"
-    # Update FULL_IMAGE_NAME to the actual found image
-    FULL_IMAGE_NAME=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "$IMAGE_NAME:$TAG" | head -1)
-    echo "Using image: $FULL_IMAGE_NAME"
 else
     echo -e "${YELLOW}⚠️  Image not found locally, attempting to pull...${NC}"
     if docker pull "$FULL_IMAGE_NAME"; then
         echo -e "${GREEN}✅ Image pulled successfully${NC}"
     else
         echo -e "${RED}❌ Failed to pull image${NC}"
-        echo "Available images:"
         docker images
         exit 1
     fi
 fi
 
-# Test 2: PHP version check
+# Test 2: PHP version check (required)
 echo -e "${YELLOW}Test 2: Verifying PHP version...${NC}"
 PHP_OUTPUT=$(docker run --rm "$FULL_IMAGE_NAME" php -v)
 if echo "$PHP_OUTPUT" | grep -q "PHP $PHP_VERSION"; then
@@ -140,62 +128,45 @@ else
     exit 1
 fi
 
-# Test 3: OpenTelemetry extension
+# Test 3: OpenTelemetry extension (required)
 echo -e "${YELLOW}Test 3: Checking OpenTelemetry extension...${NC}"
-if docker run --rm "$FULL_IMAGE_NAME" php -m | grep -q "opentelemetry"; then
+if docker run --rm "$FULL_IMAGE_NAME" php -m | grep -qi "^opentelemetry$"; then
     echo -e "${GREEN}✅ OpenTelemetry extension loaded${NC}"
 else
-    echo -e "${YELLOW}⚠️  OpenTelemetry extension not found (continuing anyway)${NC}"
-    echo "Available extensions:"
-    docker run --rm "$FULL_IMAGE_NAME" php -m | head -20
+    echo -e "${RED}❌ OpenTelemetry extension not found${NC}"
+    docker run --rm "$FULL_IMAGE_NAME" php -m | sort
+    exit 1
 fi
 
-# Test 4: Composer availability
-echo -e "${YELLOW}Test 4: Checking Composer...${NC}"
-if docker run --rm "$FULL_IMAGE_NAME" which composer >/dev/null 2>&1; then
-    COMPOSER_OUTPUT=$(docker run --rm "$FULL_IMAGE_NAME" composer --version)
-    if echo "$COMPOSER_OUTPUT" | grep -q "Composer"; then
-        echo -e "${GREEN}✅ Composer available${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Composer found but version check failed${NC}"
-        echo "Composer output: $COMPOSER_OUTPUT"
-    fi
+# Test 4: gRPC extension (required)
+echo -e "${YELLOW}Test 4: Checking gRPC extension...${NC}"
+if docker run --rm "$FULL_IMAGE_NAME" php -m | grep -qi "^grpc$"; then
+    echo -e "${GREEN}✅ gRPC extension loaded${NC}"
 else
-    echo -e "${YELLOW}⚠️  Composer not found (continuing anyway)${NC}"
+    echo -e "${RED}❌ gRPC extension not found${NC}"
+    docker run --rm "$FULL_IMAGE_NAME" php -m | sort
+    exit 1
 fi
 
-# Test 5: Basic container startup
-echo -e "${YELLOW}Test 5: Testing container startup...${NC}"
-case $VARIANT in
-    "swoole")
-        # Test Swoole extension
-        if docker run --rm "$FULL_IMAGE_NAME" php -m | grep -q "swoole"; then
-            echo -e "${GREEN}✅ Swoole extension loaded${NC}"
-        else
-            echo -e "${YELLOW}⚠️  Swoole extension not found (continuing anyway)${NC}"
-        fi
-        ;;
-    "frankenphp")
-        # Test FrankenPHP availability
-        if docker run --rm "$FULL_IMAGE_NAME" which frankenphp >/dev/null 2>&1; then
-            if docker run --rm "$FULL_IMAGE_NAME" frankenphp version | grep -q "FrankenPHP"; then
-                echo -e "${GREEN}✅ FrankenPHP available${NC}"
-            else
-                echo -e "${YELLOW}⚠️  FrankenPHP found but version check failed${NC}"
-            fi
-        else
-            echo -e "${YELLOW}⚠️  FrankenPHP not found (continuing anyway)${NC}"
-        fi
-        ;;
-esac
+# Test 5: FrankenPHP binary (required)
+echo -e "${YELLOW}Test 5: Checking FrankenPHP binary...${NC}"
+if docker run --rm "$FULL_IMAGE_NAME" frankenphp version | grep -q "FrankenPHP"; then
+    echo -e "${GREEN}✅ FrankenPHP available${NC}"
+else
+    echo -e "${RED}❌ FrankenPHP not available${NC}"
+    exit 1
+fi
 
-# Test 6: Essential PHP extensions
+# Test 6: Essential PHP extensions (required)
 echo -e "${YELLOW}Test 6: Checking essential PHP extensions...${NC}"
-REQUIRED_EXTENSIONS=("json" "mbstring" "pdo" "openssl" "tokenizer" "xml" "zip")
+# Only extensions guaranteed by the base image (dunglas/frankenphp) or installed
+# by our Dockerfile. Everything else must be added by the consuming app.
+REQUIRED_EXTENSIONS=("json" "mbstring" "pdo" "openssl" "tokenizer" "xml" "ctype" "curl")
 MISSING_EXTENSIONS=()
+INSTALLED_EXTENSIONS=$(docker run --rm "$FULL_IMAGE_NAME" php -m)
 
 for ext in "${REQUIRED_EXTENSIONS[@]}"; do
-    if ! docker run --rm "$FULL_IMAGE_NAME" php -m | grep -q "^$ext$"; then
+    if ! echo "$INSTALLED_EXTENSIONS" | grep -qi "^$ext$"; then
         MISSING_EXTENSIONS+=("$ext")
     fi
 done
@@ -203,12 +174,19 @@ done
 if [ ${#MISSING_EXTENSIONS[@]} -eq 0 ]; then
     echo -e "${GREEN}✅ All essential extensions present${NC}"
 else
-    echo -e "${YELLOW}⚠️  Missing extensions: ${MISSING_EXTENSIONS[*]} (continuing anyway)${NC}"
-    echo "Available extensions:"
-    docker run --rm "$FULL_IMAGE_NAME" php -m | sort
+    echo -e "${RED}❌ Missing extensions: ${MISSING_EXTENSIONS[*]}${NC}"
+    echo "$INSTALLED_EXTENSIONS" | sort
+    exit 1
+fi
+
+# Test 7: Composer availability (informational)
+echo -e "${YELLOW}Test 7: Checking Composer...${NC}"
+if docker run --rm "$FULL_IMAGE_NAME" which composer >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ Composer available${NC}"
+else
+    echo -e "${YELLOW}⚠️  Composer not found (continuing anyway)${NC}"
 fi
 
 echo ""
 echo -e "${GREEN}🎉 Tests completed for $FULL_IMAGE_NAME!${NC}"
 echo -e "${BLUE}Image is ready for use.${NC}"
-echo -e "${YELLOW}Note: Some tests may have shown warnings but the script continued.${NC}"

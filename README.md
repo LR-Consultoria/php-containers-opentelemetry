@@ -1,187 +1,136 @@
 # PHP Docker Base Images
 
-Este repositório contém Dockerfiles para imagens base PHP otimizadas para projetos Laravel, seguindo os padrões PSR-12 e boas práticas de containerização.
+Este repositório contém os Dockerfiles das **imagens base PHP da LR Consultoria**,
+otimizadas para projetos Laravel com **FrankenPHP** e **OpenTelemetry**.
 
-[![Build and Push](https://github.com/lrconsultoria/php-docker/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/lrconsultoria/php-docker/actions/workflows/build-and-push.yml)
+[![Build and Push](https://github.com/LR-Consultoria/php-containers-opentelemetry/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/LR-Consultoria/php-containers-opentelemetry/actions/workflows/build-and-push.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker Pulls](https://img.shields.io/docker/pulls/lrconsultoria/php-fpm)](https://github.com/lrconsultoria/php-docker/pkgs/container/php-fpm)
 
 ## 🐳 Imagens Disponíveis
 
-### Versões PHP Suportadas
-- **PHP 8.2** - Versão estável (suporte de segurança)
-- **PHP 8.3** - Versão estável (suporte ativo)
-- **PHP 8.4** - Versão estável recomendado (suporte ativo)
-- **PHP 8.4** - em breve
+| Imagem | Tags | Portas | Uso |
+|--------|------|--------|-----|
+| `ghcr.io/lr-consultoria/php-frankenphp` | `8.2-alpine`, `8.3-alpine`, `8.4-alpine`, `8.5-alpine` | 80, 443 | Aplicações modernas (FrankenPHP/Octane) |
 
-### Variantes Disponíveis
+- Versões PHP suportadas: **8.2, 8.3, 8.4, 8.5** (default no build: 8.3).
+- Manifest multi-arch: `amd64` e `arm64`. `latest` acompanha a **8.4**.
+- Tags por arquitetura também são publicadas (`<php>-alpine-amd64` / `<php>-alpine-arm64`).
 
-| Variante | Descrição | Porta | Uso Recomendado |
-|----------|-----------|-------|-----------------|
-| **FrankenPHP** | Servidor moderno com HTTP/2 e HTTP/3 | 80/443 | Aplicações modernas |
+> Consumidores normalmente rodam `php artisan octane:frankenphp` (Laravel Octane),
+> então o Caddyfile embutido serve de base para uso direto da imagem.
 
 ## 🛠 Características
 
-- ✅ **Baseado em Alpine Linux** - Imagens ultra-leves (~50MB base)
-- ✅ **OpenTelemetry pré-instalado** - Observabilidade out-of-the-box
-- ✅ **Extensões PHP essenciais** - Tudo que o Laravel precisa
-- ✅ **Configurações otimizadas** - Produção e desenvolvimento
-- ✅ **PSR-12 compliance** - Padrões de código profissionais
-- ✅ **Multi-arquitetura** - Suporte AMD64 e ARM64
-- ✅ **Health checks** - Monitoramento integrado
-- ✅ **Security hardened** - Configurações seguras por padrão
+- ✅ Baseada em Alpine Linux (imagens leves)
+- ✅ **OpenTelemetry + gRPC** pré-instalados
+- ✅ Extensões PHP essenciais para Laravel
+- ✅ Configurações otimizadas (OPcache, php.ini)
+- ✅ Multi-arquitetura (AMD64 e ARM64)
+- ✅ Health check integrado (`GET /health`)
+- ✅ Executa como usuário não-root (`www-data`, UID/GID 1000)
 
 ## 📦 Uso Rápido
 
-### Com FrankenPHP
 ```bash
-docker pull ghcr.io/lrconsultoria/php-frankenphp:8.3-alpine
+docker pull ghcr.io/lr-consultoria/php-frankenphp:8.4-alpine
 ```
+
+### Uso em Dockerfile
+
+```dockerfile
+FROM ghcr.io/lr-consultoria/php-frankenphp:8.4-alpine
+
+COPY . /var/www
+RUN composer install --no-dev --optimize-autoloader
+
+# O CMD padrão sobe o FrankenPHP com o Caddyfile embutido.
+# Para Octane, sobrescreva com:
+# CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=80"]
+```
+
+Consulte a pasta [`examples/`](examples/) para exemplos de docker-compose.
 
 ## 🏗 Build Local
 
-```bash
-# Build todas as imagens
-./scripts/build-all.sh
+O contexto de build é a **raiz do repositório** (o Dockerfile copia `configs/`).
 
-# Build versão específica
-./scripts/build.sh 8.3 frankenphp
+```bash
+# Build de uma imagem
+make build VERSION=8.4 VARIANT=frankenphp
+
+# Build + smoke test
+make test VERSION=8.4 VARIANT=frankenphp
+
+# Build direto com Docker
+docker build --build-arg PHP_VERSION=8.4 -f frankenphp/Dockerfile -t my-php:8.4 .
+
+# Build multi-arch (buildx)
+make build-matrix
+```
+
+### Build Args
+
+Todos os Dockerfiles usam `PHP_VERSION` como argumento:
+
+```dockerfile
+ARG PHP_VERSION=8.3
+FROM dunglas/frankenphp:1-php${PHP_VERSION}-alpine
 ```
 
 ## 📁 Estrutura do Projeto
 
 ```
 php-docker/
-├── frankenphp/     # Variantes com FrankenPHP
-├── scripts/        # Scripts de build e automação
+├── frankenphp/     # Dockerfile da variante FrankenPHP
+├── configs/        # Configurações compartilhadas (php.ini, Caddyfile, entrypoint)
+├── scripts/        # Scripts de build/test/push
 ├── examples/       # Exemplos de docker-compose
-└── configs/        # Configurações compartilhadas
+├── docs/runbooks/  # Runbooks operacionais
+└── .github/        # GitHub Actions
 ```
 
 ## 🔧 Configurações Incluídas
 
-### PHP Extensions
-- **Core**: bcmath, calendar, ctype, curl, dom, exif, fileinfo, filter, ftp, gd, gettext, hash, iconv, json, libxml, mbstring, mysqli, openssl, pcre, PDO, pdo_mysql, pdo_pgsql, pdo_sqlite, pcntl, soap, sockets, zip
-- **Performance**: opcache, redis
-- **Observability**: opentelemetry
+### Extensões PHP
+- **Vêm da base** (`dunglas/frankenphp`): ctype, curl, dom, fileinfo, filter, json,
+  libxml, mbstring, openssl, PDO, pdo_sqlite, pcre, Phar, posix, session, SimpleXML,
+  sodium, sqlite3, tokenizer, xml, xmlreader, xmlwriter, zlib
+- **Instaladas por este Dockerfile**: **opentelemetry**, **grpc**
+- **Performance**: opcache (habilitado na base)
 
-### Ferramentas Incluídas
-- **Composer** - Gerenciador de dependências PHP
-- **Node.js + NPM** - Para build de assets
-- **Git** - Controle de versão
-- **Curl** - Cliente HTTP
-- **MySQL/PostgreSQL Clients** - Clientes de banco
+> Outras extensões usadas pelos apps (`redis`, `pdo_mysql`/`pdo_pgsql`, `zip`, `intl`,
+> `bcmath`, `memcached`, …) **não** estão na base. Instale no Dockerfile do app
+> (`install-php-extensions`, já disponível na imagem).
 
-### Configurações Otimizadas
-- **OPcache** - Cache de bytecode configurado
-- **PHP-FPM** - Pool workers otimizados
-- **Memory limits** - Configurados para Laravel
-- **Error handling** - Logs estruturados
-- **Security headers** - Configurações de segurança
+### Ferramentas
+Node.js + NPM, Git, Curl, clientes MySQL/PostgreSQL **não** estão incluídos por padrão —
+apenas o essencial do upstream. Composer e `install-php-extensions` estão disponíveis.
 
-## 🚀 Exemplos de Uso
+## 🚀 Scripts e Makefile
 
-### Quick Start
 ```bash
-# Clone o repositório
-git clone https://github.com/lrconsultoria/php-docker.git
-cd php-docker
-
-# Setup do ambiente de desenvolvimento
-make dev-setup
-
-# Inicie uma aplicação Laravel
-docker-compose -f examples/laravel-base.yml up -d
+make build VERSION=8.4 VARIANT=frankenphp   # build específico
+make build-all                              # build de todas as versões
+make test VERSION=8.4 VARIANT=frankenphp    # smoke test
+make test-all                               # testa todas
+make push VERSION=8.4 VARIANT=frankenphp    # push específico
+make push-all                               # push de todas
+make clean                                  # limpeza Docker
+make list-images                            # lista imagens locais
 ```
 
-### Uso em Dockerfile
-```dockerfile
-FROM ghcr.io/lrconsultoria/php-fpm:8.3-alpine
-
-COPY . /var/www
-RUN composer install --no-dev --optimize-autoloader
-
-CMD ["php-fpm"]
-```
-
-Consulte a pasta [`examples/`](examples/) para ver exemplos completos de como usar essas imagens em seus projetos Laravel.
-
-## 🛠 Build e Desenvolvimento
-
-### Build Local
-```bash
-# Build uma imagem específica
-make build VERSION=8.3 VARIANT=fpm
-
-# Build todas as imagens
-make build-all
-
-# Build direto com Docker (usando argumentos)
-docker build --build-arg PHP_VERSION=8.3 -t my-php:8.3 -f fpm/Dockerfile .
-
-# Executar testes
-make test VERSION=8.3 VARIANT=fpm
-make test-all
-```
-
-### 🏗 Arquitetura de Build Args
-Todos os Dockerfiles usam `PHP_VERSION` como argumento, permitindo:
-- **Manutenção simplificada**: Um Dockerfile por variante
-- **Flexibilidade**: Qualquer versão PHP suportada  
-- **CI/CD otimizado**: Builds mais eficientes
-
-### Scripts Disponíveis
-- `make build` - Build de imagem específica
-- `make build-all` - Build de todas as imagens
-- `make test` - Teste de imagem específica
-- `make test-all` - Teste de todas as imagens
-- `make push` - Push para registry
-- `make clean` - Limpeza de recursos Docker
-
-## 📊 Performance Benchmarks
-
-| Variante | Startup Time | Memory Usage | Request/sec |
-|----------|--------------|--------------|-------------|
-| FrankenPHP | ~2s | 60MB | 3,000 |
-
-*Benchmarks executados em ambiente de teste padrão com aplicação Laravel simples.*
+Variáveis: `REGISTRY` (default `ghcr.io/lr-consultoria`), `TAG_SUFFIX`,
+`NO_CACHE=1`, `PUSH=1`, `BUILDX=1`.
 
 ## 🔒 Segurança
 
-### Scaneamento de Vulnerabilidades
-- Scaneamento automático com Trivy
-- Updates mensais de dependências
-- Security patches aplicados regularmente
-
-### Configurações de Segurança
-- User não-root por padrão
-- Arquivos sensíveis protegidos
-- Headers de segurança configurados
-- Secrets management via environment
+- Executa como usuário não-root (`www-data`, UID/GID 1000).
+- Scan automático com Trivy no CI (falha em HIGH/CRITICAL não corrigíveis).
+- `apk upgrade` no build absorve patches do Alpine.
+- Runbook de remediação: [`docs/runbooks/vulnerabilidades-trivy.md`](docs/runbooks/vulnerabilidades-trivy.md).
 
 ## 📋 Licença
 
-MIT License - veja [LICENSE](LICENSE) para detalhes.
+MIT License — veja [LICENSE](LICENSE).
 
-## 🤝 Contribuindo
-
-Contributions são bem-vindas! Leia nosso [CONTRIBUTING.md](CONTRIBUTING.md) para guidelines detalhadas.
-
-### Quick Contribution
-1. Fork o projeto
-2. Crie uma branch: `git checkout -b feature/nova-feature`
-3. Commit: `git commit -am 'feat: adiciona nova feature'`
-4. Push: `git push origin feature/nova-feature`
-5. Abra um Pull Request
-
-## 📞 Suporte
-
-- **Issues**: [GitHub Issues](https://github.com/lrconsultoria/php-docker/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/lrconsultoria/php-docker/discussions)
-- **Email**: devops@lrconsultoria.com.br
-- **Documentation**: [Wiki](https://github.com/lrconsultoria/php-docker/wiki)
-
----
-
-**Last updated**: 2025-12-19 10:55:00 UTC
-**Made with ❤️ by [LR Consultoria](https://lrconsultoria.com.br)**
+**Mantido por [LR Consultoria](https://lrconsultoria.com.br).**
