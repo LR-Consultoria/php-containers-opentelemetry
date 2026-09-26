@@ -9,8 +9,10 @@ updates:
       prefix: "chore(ci)"
 
   # Track the FrankenPHP upstream base image used by frankenphp/Dockerfile.
+  # Dependabot does not scan subdirectories, so the directory must point to
+  # the folder that actually contains the Dockerfile.
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/frankenphp"
     schedule:
       interval: "weekly"
     commit-message:
