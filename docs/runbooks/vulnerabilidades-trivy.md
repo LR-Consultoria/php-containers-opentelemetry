@@ -1,6 +1,7 @@
 ---
 tags: [runbook, seguranca, docker, trivy]
 criado: 2026-09-25
+atualizado: 2026-09-28
 ---
 
 # Runbook — Vulnerabilidades Trivy nas imagens base
@@ -10,6 +11,12 @@ containers consumidores, originados na **imagem base PHP** deste repositório.
 
 > Este documento é a **definição** do processo. A execução fica a cargo do time
 > de infra na próxima janela de manutenção.
+
+> **TL;DR — de onde vem o achado:**
+> - **Pacote de SO (Alpine)** → corrigível aqui (`apk upgrade`); gate bloqueia em HIGH/CRITICAL.
+> - **Dependência Go do binário FrankenPHP** → herda do upstream; **não** é corrigível
+>   neste repo. Fica só no SARIF. Ver *Exceção registrada — superfície Go* (revisão **2026-12-28**).
+> - **Código do app (Composer)** → fora de escopo; ver `composer audit` do app.
 
 ## Escopo
 
@@ -79,10 +86,12 @@ base atualizando os pacotes do SO.
    descartado:
 
    ```dockerfile
+   ARG INSTALL_PHP_EXTENSIONS_VERSION=2.12.0
+
    RUN apk upgrade --no-cache \
        && apk add --no-cache curl bash \
        && curl -sSLf -o /usr/local/bin/install-php-extensions \
-           https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
+           "https://github.com/mlocati/docker-php-extension-installer/releases/download/${INSTALL_PHP_EXTENSIONS_VERSION}/install-php-extensions" \
        && chmod +x /usr/local/bin/install-php-extensions \
        && install-php-extensions opentelemetry grpc \
        && rm -rf /var/cache/apk/* /tmp/*
@@ -96,8 +105,8 @@ base atualizando os pacotes do SO.
 
 4. Fazer merge no `main` deste repositório — o workflow publica as imagens
    (`build-matrix` → `create-manifests`) e roda o `security-scan`.
-   **Atenção:** reabilitar o workflow antes, pois hoje ele está
-   `disabled_inactivity` (ver *Lacunas conhecidas*).
+   O workflow está `active` (foi reabilitado em 2026-09-25); se voltar a
+   `disabled_inactivity`, ver *Lacunas conhecidas*.
 
 ### Opção B — corrigir só no app consumidor (paliativo)
 
@@ -116,12 +125,17 @@ A imagem do app no ECR precisa ser **reconstruída** para herdar a base nova:
 ## Verificação
 
 ```bash
-# Base publicada, sem HIGH/CRITICAL
-trivy image --severity HIGH,CRITICAL \
-  ghcr.io/lr-consultoria/php-frankenphp:8.5-alpine-amd64 \
+# Base publicada: gate de SO (o que este repo consegue corrigir).
+# Sem --vuln-type os o comando falharia pelas CVEs Go do upstream (ver exceção).
+trivy image --severity HIGH,CRITICAL --vuln-type os --ignore-unfixed \
+  ghcr.io/lr-consultoria/php-frankenphp:8.4-alpine \
   --exit-code 1
 
-# Imagem do app no ECR
+# Superfície Go do upstream: apenas relatório, sem gate.
+trivy image --severity HIGH,CRITICAL --vuln-type library \
+  ghcr.io/lr-consultoria/php-frankenphp:8.4-alpine
+
+# Imagem do app no ECR (o gate lá é integral; ver exceção se apontar só Go)
 trivy image --severity HIGH,CRITICAL \
   638655891410.dkr.ecr.us-east-2.amazonaws.com/player-tm-prod:latest \
   --exit-code 1
@@ -129,6 +143,9 @@ trivy image --severity HIGH,CRITICAL \
 
 - No GitHub, o job `security-scan` deste repositório publica o SARIF na aba
   **Security → Code scanning**.
+- O workflow valida em `push`/`schedule`/`workflow_dispatch` na `main` — **não**
+  em PRs (`manifest`/`trivy`/`smoke` têm `github.event_name != 'pull_request'`).
+  Para validar sem mergear: `gh workflow run build-and-push.yml --ref main`.
 
 ## Rollback
 
@@ -178,6 +195,51 @@ upstream publicar uma versão corrigida.
 
 > Não adicione essas CVEs ao `.trivyignore` da base (ver *Exceções*); o SARIF já
 > é o canal de acompanhamento e o gate de SO permanece ativo.
+
+### Exceção registrada — superfície Go do FrankenPHP
+
+**Estado:** `ABERTA` · **Revisão em:** **2026-12-28** (trimestral)
+
+- **O que é:** as 7 CVEs HIGH/CRITICAL acima, todas em dependências Go embutidas
+  no binário do FrankenPHP (`library`), herdadas do upstream
+  `dunglas/frankenphp`.
+- **Por que não é corrigível aqui:** o binário vem pronto do upstream. A versão
+  publicada (FrankenPHP v1.12.7) **é** a mais recente — verificado em
+  2026-09-28 via `gh api repos/dunglas/frankenphp/releases/latest`. `apk upgrade`
+  não afeta binários Go.
+- **Risco aceito:** as CVEs alcançáveis dependem do modo de uso. Os apps
+  consumidores rodam o FrankenPHP via `php artisan octane:frankenphp` e **não**
+  expõem `kin-openapi` (usado pelo módulo Caddy/admin) nem HTTP/2 arbitrário
+  diretamente ao público — o TLS e o balanceamento ficam no ALB/ingress. Impacto
+  prático considerado **baixo** no desenho atual.
+- **Critério de fechamento (objetivo):** a exceção é encerrada quando o
+  `dunglas/frankenphp` publicar uma versão com `grpc` ≥ 1.82.1 / `kin-openapi`
+  ≥ 0.141.0 / `x/crypto` ≥ 0.55.0 **ou** quando o gate de SO (`vuln-type: os`)
+  deixar de reportá-las após o rebuild.
+- **Ação de revisão (rodar na data):**
+
+  ```bash
+  # 1. O upstream ja corrigiu?
+  gh api repos/dunglas/frankenphp/releases/latest --jq '.tag_name'
+
+  # 2. Versoes Go embutidas na imagem publicada
+  docker run --rm --entrypoint sh \
+    ghcr.io/lr-consultoria/php-frankenphp:8.4-alpine \
+    -c 'frankenphp build-info | grep -E "grpc|kin-openapi|x/crypto"'
+
+  # 3. Achados atuais (library = superficie Go)
+  trivy image --severity HIGH,CRITICAL --vuln-type library \
+    ghcr.io/lr-consultoria/php-frankenphp:8.4-alpine
+  ```
+
+  Se houver correção, atualizar a tag `FROM` no `frankenphp/Dockerfile`, mergear
+  na `main` e reexecutar o `Security Check` dos apps (ver *Após publicar a base*).
+  Se não houver, renovar a data de revisão por mais um trimestre e registrar a
+  justificativa.
+
+- **Rastreamento:** o Dependabot (`docker` em `/frankenphp`) abrirá PR
+  automaticamente quando o upstream publicar uma tag nova — é o gatilho mais
+  confiável e pode antecipar a revisão manual.
 
 ## Lacunas conhecidas
 
