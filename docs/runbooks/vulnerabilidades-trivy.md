@@ -1,7 +1,7 @@
 ---
 tags: [runbook, seguranca, docker, trivy]
 criado: 2026-09-25
-atualizado: 2026-09-28
+atualizado: 2026-10-22
 ---
 
 # Runbook — Vulnerabilidades Trivy nas imagens base
@@ -240,6 +240,41 @@ upstream publicar uma versão corrigida.
 - **Rastreamento:** o Dependabot (`docker` em `/frankenphp`) abrirá PR
   automaticamente quando o upstream publicar uma tag nova — é o gatilho mais
   confiável e pode antecipar a revisão manual.
+
+## CVEs do próprio PHP (o Trivy não vê)
+
+O PHP **não é pacote `apk`** nesta imagem: o `dunglas/frankenphp` compila o PHP
+a partir do source, então o Trivy não tem SBOM do binário e **não reporta CVE de
+PHP**. O gate de SO pode ficar verde com um PHP vulnerável. A única evidência
+confiável é `php -v` dentro da imagem — foi assim que o caso de 2026-10-21 foi
+detectado (`8.5.11`/`8.3.35`/`8.2.34` ainda vulneráveis, CVEs CVE-2026-109618 e
+CVE-2026-109619, RCE não autenticado, CVSS 9.2).
+
+Procedimento:
+
+1. Acompanhar o [arquivo de releases de segurança do PHP](https://www.php.net/archive/2026.php)
+   e o repositório `dunglas/frankenphp` (a tag `1-php<X.Y>-alpine` é reconstruída
+   quando o PHP lança correção).
+2. Rebuildar a matriz **sem esperar o cron de domingo**:
+   `gh workflow run build-and-push.yml --ref main`.
+3. Confirmar o patch **na imagem publicada**, não no build verde:
+   ```bash
+   docker run --rm ghcr.io/lr-consultoria/php-frankenphp:8.5-alpine-amd64 php -v
+   ```
+   Se ainda vier a versão antiga, o upstream não reconstruiu a tag ou o cache do
+   build reaproveitou a camada — rebuildar com `NO_CACHE=1`.
+4. Avisar os consumidores: o rebuild deles é que sobe o patch (a tag `8.x-alpine`
+   é flutuante, mas a imagem do app é imutável no ECR por SHA).
+5. Conferir o hardening embutido (`session.upload_progress.enabled=0`,
+   `fatal_error_backtraces=0` em 8.5) — o `scripts/test.sh` (Test 8) falha se
+   algum dos dois sair do `php-franken.ini`.
+
+> **Não altere `memory_limit` nem `post_max_size` na base por causa de CVE.** O
+> advisory do PHP sugere `memory_limit=-1` e `post_max_size` baixo como mitigação
+> interina do CVE-2026-109618, mas isso muda o comportamento de todos os apps
+> (uploads de importação/vídeo já quebram com valores baixos). Com o patch
+> aplicado, o trade-off correto é deixar como está e tratar limites por app
+> (`php_admin_value` no pool, ou o `uploads.ini` do próprio projeto).
 
 ## Lacunas conhecidas
 
