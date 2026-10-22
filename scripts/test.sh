@@ -187,6 +187,33 @@ else
     echo -e "${YELLOW}⚠️  Composer not found (continuing anyway)${NC}"
 fi
 
+# Test 8: Security hardening ini (required)
+# Guards the CVE-2026-109618 / CVE-2026-109619 hardening declared in
+# configs/php-franken.ini against regressions (e.g. a config file dropped
+# from the COPY step). fatal_error_backtraces only exists on PHP >= 8.5.
+echo -e "${YELLOW}Test 8: Checking security hardening ini...${NC}"
+HARDENING_RESULT=$(docker run --rm "$FULL_IMAGE_NAME" php -r '
+$uploadProgress = ini_get("session.upload_progress.enabled");
+$backtraces = ini_get("fatal_error_backtraces");
+$ok = ($uploadProgress === "0");
+if (version_compare(PHP_VERSION, "8.5", ">=")) {
+    $ok = $ok && ($backtraces === "0");
+}
+printf(
+    "%s (session.upload_progress.enabled=%s, fatal_error_backtraces=%s)",
+    $ok ? "ok" : "fail",
+    var_export($uploadProgress, true),
+    var_export($backtraces, true)
+);
+')
+case "$HARDENING_RESULT" in
+    ok*) echo -e "${GREEN}✅ Security hardening ini applied${NC}" ;;
+    *)
+        echo -e "${RED}❌ Security hardening ini not applied: $HARDENING_RESULT${NC}"
+        exit 1
+        ;;
+esac
+
 echo ""
 echo -e "${GREEN}🎉 Tests completed for $FULL_IMAGE_NAME!${NC}"
 echo -e "${BLUE}Image is ready for use.${NC}"
